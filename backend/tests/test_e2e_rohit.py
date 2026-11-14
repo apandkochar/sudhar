@@ -55,7 +55,7 @@ def test_rohit_hero_flow_end_to_end():
         "FACTS",
         "CODE_LOOKUP",
         "RULES",
-        "LLM_DRAFT",
+        "TEMPLATE_FALLBACK",
         "VALIDATOR",
         "CONSENT_PROPOSED"
     ]

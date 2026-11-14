@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { PaytmHeader } from "../components/mobile/PaytmHeader";
 import { Stepper } from "../components/mobile/Stepper";
 import { BeforeScreen } from "../components/mobile/BeforeScreen";
@@ -11,6 +11,7 @@ import { PhoneFrame } from "../components/mobile/PhoneFrame";
 import { LiveTrace } from "../components/console/LiveTrace";
 import { ScenarioBar } from "../components/console/ScenarioBar";
 import { sendEvent, sendConsent, getCaseDetails, resetDatabase, CaseData, AuditEntry } from "../lib/api";
+import { Smartphone } from "lucide-react";
 
 const PERSONAS_CONFIG: Record<string, any> = {
   rohit: {
@@ -22,7 +23,7 @@ const PERSONAS_CONFIG: Record<string, any> = {
       event_id: "EVT-ROHIT-DEMO-01",
       event_type: "MANDATE_FAILED",
       customer_id: "CUST-ROHIT-401",
-      timestamp: new Date().toISOString(),
+      timestamp: "2026-11-14T10:15:30Z",
       payload: {
         code: "AP15",
         attempt: 1,
@@ -39,32 +40,36 @@ const PERSONAS_CONFIG: Record<string, any> = {
     event: {
       event_id: "EVT-ASHA-DEMO-01",
       event_type: "EMI_DEBITED_AFTER_CLOSURE",
-      customer_id: "CUST-ASHA-802",
-      timestamp: new Date().toISOString(),
+      customer_id: "CUST-ASHA-102",
+      timestamp: "2026-11-05T06:30:00Z",
       payload: {
         code: "LMS_POST_CLOSURE_DEBIT",
-        loan_id: "LN-ASHA-150K",
-        debit_amount: 4500,
+        loan_id: "LN-ASHA-PERSONAL-150K",
+        closure_date: "2026-11-04",
         debit_date: "2026-11-05",
+        excess_debit_amount: 4500,
         bank_account_masked: "ICICI Bank ending 7810"
       }
     }
   },
   sunita: {
-    name: "Sunita Deshmukh",
-    city: "Nashik",
-    preferred_language: "mr",
-    loan_amount: 75000,
+    name: "Sunita Devi",
+    city: "Jaipur",
+    preferred_language: "hi",
+    loan_amount: 35000,
     event: {
       event_id: "EVT-SUNITA-DEMO-01",
       event_type: "VKYC_DROPPED",
-      customer_id: "CUST-SUNITA-103",
-      timestamp: new Date().toISOString(),
+      customer_id: "CUST-SUNITA-204",
+      timestamp: "2026-11-14T11:45:00Z",
       payload: {
         code: "VKYC_NET_DROP",
-        application_id: "APP-SUNITA-75K",
-        attempt: 1,
-        disconnect_reason: "SOCKET_TIMEOUT"
+        call_id: "VKYC-CALL-98214",
+        vkyc_stage: "IN_CALL_DROP",
+        pan_verified: true,
+        drop_reason: "Bandwidth drop below 100kbps during live agent feed",
+        mobile_masked: "+91-98XXXX3210",
+        resume_window_hours: 72
       }
     }
   }
@@ -77,20 +82,25 @@ export default function Home() {
   const [cardStep, setCardStep] = useState<"EXPLAIN" | "CONSENT" | "RECEIPT">("EXPLAIN");
   const [currentLanguage, setCurrentLanguage] = useState<string>("mr");
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [rescuesCount, setRescuesCount] = useState<number>(0);
+  
+  // Requirement 2: Count distinct cases with a successful action only; duplicates never count
+  const [rescuedCaseIds, setRescuedCaseIds] = useState<string[]>([]);
+  const consentLockRef = useRef(false);
 
-  // Trigger event when active persona changes
+  // Initial load triggers hero scenario
   useEffect(() => {
     handleTriggerScenario(activePersonaId);
-  }, [activePersonaId]);
+  }, []);
 
   const handleTriggerScenario = async (personaId: string) => {
     const config = PERSONAS_CONFIG[personaId];
     if (!config) return;
 
+    setActivePersonaId(personaId);
     setCurrentLanguage(config.preferred_language);
     setCardStep("EXPLAIN");
     setIsProcessing(true);
+    consentLockRef.current = false;
 
     try {
       const data = await sendEvent(config.event);
@@ -118,8 +128,10 @@ export default function Home() {
     }
   };
 
+  // Requirement 2: Consent must be sent ONLY from Confirm button's onClick. Guard against repeated calls.
   const handleConfirmConsent = async () => {
-    if (!caseData || !caseData.proposed_action) return;
+    if (consentLockRef.current || !caseData || !caseData.proposed_action) return;
+    consentLockRef.current = true;
     setIsProcessing(true);
 
     try {
@@ -134,12 +146,18 @@ export default function Home() {
       const updatedCase = await getCaseDetails(caseData.case_id);
       setCaseData(updatedCase);
       setCardStep("RECEIPT");
-      setRescuesCount((prev) => prev + 1);
+
+      // Distinct cases counter
+      setRescuedCaseIds((prev) => {
+        if (prev.includes(caseData.case_id)) return prev;
+        return [...prev, caseData.case_id];
+      });
     } catch (err) {
       console.error("Consent confirmation failed:", err);
       alert("Action execution failed: " + err);
     } finally {
       setIsProcessing(false);
+      consentLockRef.current = false;
     }
   };
 
@@ -159,11 +177,14 @@ export default function Home() {
     }
   };
 
+  // Requirement 2: The reset button clears the trace, counter and case state
   const handleReset = async () => {
     try {
       await resetDatabase();
-      setRescuesCount(0);
-      handleTriggerScenario(activePersonaId);
+      setRescuedCaseIds([]);
+      setCaseData(null);
+      setCardStep("EXPLAIN");
+      consentLockRef.current = false;
     } catch (e) {
       console.error("Reset failed:", e);
     }
@@ -186,24 +207,24 @@ export default function Home() {
   const statusDisplay = getCustomerFriendlyStatus();
 
   return (
-    <div className="h-screen flex flex-col bg-slate-950 text-slate-100 overflow-hidden font-sans">
+    <div className="h-screen w-screen flex flex-col bg-slate-950 text-slate-100 overflow-hidden font-sans">
       {/* Top Scenario & Mode Bar */}
       <ScenarioBar
         onSelectPersona={(id) => {
-          setActivePersonaId(id);
           setIsBeforeMode(false);
+          handleTriggerScenario(id);
         }}
         activePersonaId={activePersonaId}
         isBeforeMode={isBeforeMode}
         onToggleBeforeMode={setIsBeforeMode}
         onReset={handleReset}
-        rescuesCount={rescuesCount}
+        rescuesCount={rescuedCaseIds.length}
       />
 
-      {/* Main Dual View Area (Phone Left, Console Right) - Fits at 1280x800 */}
-      <div className="flex-1 flex flex-row items-center justify-center p-3 lg:p-6 gap-6 overflow-hidden max-w-7xl mx-auto w-full">
-        {/* Left Side: 390px Mobile Phone */}
-        <div className="flex-shrink-0">
+      {/* Main Dual View Area (Phone Left, Console Right) - Fits 1280px and 1440px widths with no horizontal scroll */}
+      <main className="flex-1 min-h-0 w-full px-4 py-2 flex flex-row items-stretch gap-4 overflow-hidden">
+        {/* Left Side: Fixed ~400px Phone Column (Requirement 1) */}
+        <div className="w-[390px] flex-shrink-0 flex flex-col h-full min-h-0 items-center justify-center">
           <PhoneFrame>
             {/* Header */}
             <PaytmHeader
@@ -222,18 +243,30 @@ export default function Home() {
               isFailed={cardStep !== "RECEIPT"}
             />
 
-            {/* Screen Content: Before vs After */}
-            {isBeforeMode ? (
+            {/* Screen Content: Standby vs Before vs After */}
+            {!caseData ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-500 space-y-3 bg-slate-50">
+                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-[#002970]">
+                  <Smartphone size={24} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-700">Sudhaar Standby</h3>
+                  <p className="text-xs text-slate-500 mt-1 max-w-[220px]">
+                    Select a scenario from the bar above to simulate a loan moment.
+                  </p>
+                </div>
+              </div>
+            ) : isBeforeMode ? (
               <BeforeScreen onSwitchToSudhaar={() => setIsBeforeMode(false)} />
             ) : (
-              <div className="flex-1 flex flex-col justify-between bg-slate-100/70">
+              <div className="flex-1 flex flex-col justify-between bg-slate-100/70 min-h-0">
                 {/* Background Context */}
-                <div className="p-3 space-y-2.5">
-                  <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+                <div className="p-3 space-y-2">
+                  <div className="bg-white p-2.5 rounded-2xl border border-slate-200 shadow-xs">
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-slate-500 font-medium">Applicant</span>
                       <span className="font-bold text-slate-800">
-                        {caseData?.facts?.name || PERSONAS_CONFIG[activePersonaId].name}
+                        {caseData?.facts?.name || PERSONAS_CONFIG[activePersonaId]?.name}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-xs mt-1">
@@ -243,13 +276,13 @@ export default function Home() {
                     <div className="flex justify-between items-center text-xs mt-1">
                       <span className="text-slate-500 font-medium">Loan Amount</span>
                       <span className="font-bold text-slate-900">
-                        ₹{(caseData?.facts?.loan_details?.loan_amount || PERSONAS_CONFIG[activePersonaId].loan_amount).toLocaleString("en-IN")}
+                        ₹{(caseData?.facts?.loan_details?.loan_amount || PERSONAS_CONFIG[activePersonaId]?.loan_amount || 50000).toLocaleString("en-IN")}
                       </span>
                     </div>
                   </div>
 
                   {/* Customer Friendly Status (Requirement 4) */}
-                  <div className={`border rounded-xl px-3 py-2 text-xs flex items-center justify-between font-semibold ${statusDisplay.colorClass}`}>
+                  <div className={`border rounded-xl px-3 py-1.5 text-xs flex items-center justify-between font-semibold ${statusDisplay.colorClass}`}>
                     <span className="text-[11px] font-medium">Application Status:</span>
                     <span>{statusDisplay.label}</span>
                   </div>
@@ -315,15 +348,15 @@ export default function Home() {
           </PhoneFrame>
         </div>
 
-        {/* Right Side: Operator Console with Live Trace (Fits at 1280x800) */}
-        <div className="flex-1 w-full h-[810px] flex flex-col">
+        {/* Right Side: Operator Console taking remaining width (min-w-0, overflow-hidden) */}
+        <div className="flex-1 min-w-0 h-full min-h-0 overflow-hidden flex flex-col">
           <LiveTrace
             auditTrail={caseData?.audit_trail || []}
             activeCaseId={caseData?.case_id}
             sourceMode={caseData?.source_mode}
           />
         </div>
-      </div>
+      </main>
     </div>
   );
 }

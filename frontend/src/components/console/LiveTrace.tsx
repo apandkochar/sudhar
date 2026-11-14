@@ -27,8 +27,8 @@ export const LiveTrace: React.FC<LiveTraceProps> = ({
 
   const getLayerBadge = (stage: string, layer: string, isAi: boolean, details: Record<string, any>) => {
     // LLM_DRAFT specifically: purple AI MODEL (Gemini) ONLY when it called the model
-    if (stage === "LLM_DRAFT") {
-      if (isAi || details.source === "gemini") {
+    if (stage === "LLM_DRAFT" || isAi) {
+      if (isAi || details.source === "gemini" || (details.summary && details.summary.includes("Gemini"))) {
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-purple-900/70 text-purple-200 border border-purple-400 shadow-sm flex-shrink-0">
             <Sparkles size={11} className="text-purple-300" />
@@ -36,6 +36,9 @@ export const LiveTrace: React.FC<LiveTraceProps> = ({
           </span>
         );
       }
+    }
+
+    if (stage === "TEMPLATE_FALLBACK" || details.source === "template") {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-sky-950/80 text-sky-300 border border-sky-600/40 flex-shrink-0">
           <Cpu size={11} />
@@ -85,6 +88,8 @@ export const LiveTrace: React.FC<LiveTraceProps> = ({
         return `Allowed actions: ${Array.isArray(entry.details.allowed_actions) ? entry.details.allowed_actions.join(", ") : "retry_mandate, book_callback"}`;
       case "LLM_DRAFT":
         return entry.details.explanation ? `Generated explanation (${entry.details.source || "template"})` : "Generated message";
+      case "TEMPLATE_FALLBACK":
+        return "Approved template used";
       case "VALIDATOR":
         return "Numbers ✓ · Action allowed ✓ · Language ✓";
       case "CONSENT_PROPOSED":
@@ -146,7 +151,7 @@ export const LiveTrace: React.FC<LiveTraceProps> = ({
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
                     <span className="font-mono text-xs md:text-sm font-bold text-white tracking-wide uppercase w-28 md:w-36 flex-shrink-0 truncate">
-                      {entry.stage}
+                      {entry.stage === "TEMPLATE_FALLBACK" ? "TEMPLATE" : entry.stage}
                     </span>
 
                     {getLayerBadge(entry.stage, entry.layer, entry.is_ai, entry.details)}

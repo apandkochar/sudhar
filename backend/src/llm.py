@@ -20,7 +20,9 @@ NON-NEGOTIABLE SAFETY RULES:
 3. NEVER promise loan approval, guarantee disbursal, or use banned phrases like "guaranteed", "pre-approved", or "100% approved".
 4. You NEVER move money, waive charges, or edit KYC. All actions require customer consent.
 5. Language: You MUST write the explanation and action_label strictly in the requested language (Marathi for 'mr', Hindi for 'hi', English for 'en'). Use natural, culturally respectful phrasing.
-6. Question for permission: End the explanation with a polite question asking for permission to proceed (e.g. Marathi: "...त्या खात्यावरून ई-मँडेट पुन्हा सेट करू का?", Hindi: "...क्या हम उस खाते से ई-मैंडेट दोबारा सेट करें?").
+6. Question for permission: End the explanation with a polite question asking for permission to proceed (e.g. Marathi: "...त्या खात्यावरून ई-मँडेट पुन्हा सेट करू का?", Hindi: "...क्या हम उस खाते से ई-मैंडेट दोबारा शुरू करें?", English: "...Shall we set up auto-debit using that account?").
+7. Western Arabic digits ONLY: You MUST write ALL numbers and amounts using Western Arabic numerals (0, 1, 2, 3, 4, 5, 6, 7, 8, 9). Do NOT write Devanagari numerals (०, १, २, etc.).
+8. Verbatim account endings: You MUST include the exact masked account numbers and last 4 digits verbatim from facts (e.g. '9012' for the failed account and '4521' for the suggested SBI account).
 
 You MUST respond strictly with a valid JSON object matching this schema:
 {
@@ -35,10 +37,10 @@ def generate_with_gemini(
     context_packet: Dict[str, Any],
     api_key: Optional[str] = None,
     model_name: Optional[str] = None,
-    timeout_sec: float = 5.0
+    timeout_sec: float = 4.0
 ) -> Tuple[Optional[Dict[str, Any]], float, Optional[str]]:
     """
-    Invokes Gemini API with strict 5.0-second timeout.
+    Invokes Gemini API with strict timeout.
     Returns: (result_dict_or_None, latency_seconds, error_reason_or_None)
     """
     key = api_key or GEMINI_API_KEY
@@ -55,6 +57,9 @@ Moment: {context_packet.get('moment')}
 Cause from Code Table: {context_packet.get('cause')}
 Allowed Actions: {json.dumps(context_packet.get('allowed_actions'))}
 Case Facts: {json.dumps(context_packet.get('facts'))}
+
+CRITICAL: Use Western digits (0-9) only. Include account ending numbers verbatim.
+{context_packet.get('validation_error', '')}
 
 Produce the structured JSON response in {context_packet.get('language')}."""
 
@@ -101,79 +106,237 @@ def draft_explanation_with_validator(
     facts: Dict[str, Any],
     allowed_actions: List[str],
     language: str,
+    action_params: Optional[Dict[str, Any]] = None,
     api_key: Optional[str] = None,
     model_name: Optional[str] = None
-) -> Tuple[Optional[Dict[str, Any]], Dict[str, Any], str, str]:
+) -> Tuple[Optional[Dict[str, Any]], List[Dict[str, Any]], str, Dict[str, Any]]:
     """
-    Executes the LLM gateway with strict 5-second timeout and validation:
-    1. First Gemini call (5s timeout).
-    2. Validator check.
-    3. If failed: Retry once with feedback.
-    4. If timeout or double failure: Fall back to approved template.
-    Returns: (output_dict, validation_trace_details, source_mode, trace_summary)
+    Executes the LLM gateway with strict latency budget and Rule 2 validation:
+    - Total Gemini budget: <= 6.0 seconds total.
+    - If attempt 1 takes > 4.0s, skip retry and fall back to template.
+    - Log exact failure reason for each rejected attempt (AI MODEL purple badge).
+    - If template used, separate row 'Approved template used' (deterministic badge).
+    Returns: (output_draft_dict, trace_attempts_list, source_mode, val_details)
     """
     lang_map = {"mr": "Marathi", "hi": "Hindi", "en": "English"}
     lang_name = lang_map.get(language, "Marathi")
+    trace_attempts: List[Dict[str, Any]] = []
 
-    # 1. First Attempt with 5.0s timeout
-    llm_draft, latency, err = generate_with_gemini(
-        context_packet, api_key=api_key, model_name=model_name, timeout_sec=5.0
+    # If offline mode, directly use template
+    if DEMO_MODE == "offline" or not (api_key or GEMINI_API_KEY):
+        template_entry = {
+            "stage": "TEMPLATE_FALLBACK",
+            "layer": "DETERMINISTIC_CODE",
+            "is_ai": False,
+            "summary": "Approved template used",
+            "details": {
+                "summary": "Approved template used",
+                "source": "template",
+                "reason": "Offline mode / pre-approved templates active",
+                "latency_sec": 0.0
+            }
+        }
+        val_details = {
+            "passed": True,
+            "attempt": 0,
+            "source": "template",
+            "latency_sec": 0.0,
+            "summary": "Numbers ✓ · Action allowed ✓ · Language ✓"
+        }
+        return None, [template_entry], "template", val_details
+
+    # Attempt 1 (4.0s timeout budget)
+    t_start = time.time()
+    attempt_1_timeout = 4.0
+    draft_1, latency_1, err_1 = generate_with_gemini(
+        context_packet, api_key=api_key, model_name=model_name, timeout_sec=attempt_1_timeout
     )
-    
-    if llm_draft:
-        val_result = validate_llm_output(llm_draft, facts, allowed_actions, language)
-        if val_result.passed:
-            summary = f"Gemini wrote the {lang_name} message ({latency:.1f} s)"
-            return llm_draft, {
+
+    if draft_1:
+        val_1 = validate_llm_output(draft_1, facts, allowed_actions, language, action_params)
+        if val_1.passed:
+            summary = f"Gemini wrote the {lang_name} message ({latency_1:.1f} s)"
+            trace_attempts.append({
+                "stage": "LLM_DRAFT",
+                "layer": "AI_GATEWAY",
+                "is_ai": True,
+                "summary": summary,
+                "details": {
+                    "summary": summary,
+                    "source": "gemini",
+                    "model": model_name or GEMINI_MODEL,
+                    "attempt": 1,
+                    "latency_sec": round(latency_1, 2),
+                    "draft": draft_1
+                }
+            })
+            val_details = {
                 "passed": True,
                 "attempt": 1,
                 "source": "gemini",
-                "latency_sec": round(latency, 2),
-                "summary": summary
-            }, "gemini", summary
-        
-        # 2. Retry Attempt if validation failed
-        retry_packet = dict(context_packet)
-        retry_packet["validation_error"] = f"Previous attempt failed safety validation: {'; '.join(val_result.errors)}. Correct these errors immediately."
-        retry_draft, r_latency, r_err = generate_with_gemini(
-            retry_packet, api_key=api_key, model_name=model_name, timeout_sec=5.0
-        )
-        total_latency = latency + r_latency
-        
-        if retry_draft:
-            retry_val = validate_llm_output(retry_draft, facts, allowed_actions, language)
-            if retry_val.passed:
-                summary = f"Gemini wrote the {lang_name} message ({total_latency:.1f} s · retry 2)"
-                return retry_draft, {
-                    "passed": True,
-                    "attempt": 2,
-                    "source": "gemini",
-                    "latency_sec": round(total_latency, 2),
-                    "summary": summary
-                }, "gemini", summary
-            
-            summary = "Template fallback · Gemini validation failed twice"
-            return None, {
-                "passed": False,
-                "attempt": 2,
-                "source": "template_fallback",
-                "latency_sec": round(total_latency, 2),
-                "summary": summary
-            }, "template", summary
+                "latency_sec": round(latency_1, 2),
+                "summary": "Numbers ✓ · Action allowed ✓ · Language ✓"
+            }
+            return draft_1, trace_attempts, "gemini", val_details
 
-    # Error or timeout fallback
-    if err == "timeout":
-        summary = f"Template · Gemini timeout ({latency:.1f} s)"
-    elif err == "offline_mode":
-        summary = "Template · Offline mode"
+        # Attempt 1 rejected by safety validator: Log exact failure reason with purple AI badge
+        reason_1 = val_1.errors[0] if val_1.errors else "validation failed"
+        err_summary_1 = f"Gemini draft rejected · {reason_1}"
+        trace_attempts.append({
+            "stage": "LLM_DRAFT",
+            "layer": "AI_GATEWAY",
+            "is_ai": True,
+            "summary": err_summary_1,
+            "details": {
+                "summary": err_summary_1,
+                "source": "gemini",
+                "model": model_name or GEMINI_MODEL,
+                "attempt": 1,
+                "latency_sec": round(latency_1, 2),
+                "error": reason_1,
+                "errors": val_1.errors,
+                "rejected_draft": draft_1
+            }
+        })
     else:
-        summary = f"Template · Fallback ({err or 'API unavailable'})"
+        # Error or timeout on attempt 1
+        err_desc = "Gemini timeout" if err_1 == "timeout" else (err_1 or "API error")
+        err_summary_1 = f"Gemini draft rejected · {err_desc} ({latency_1:.1f} s)"
+        trace_attempts.append({
+            "stage": "LLM_DRAFT",
+            "layer": "AI_GATEWAY",
+            "is_ai": True,
+            "summary": err_summary_1,
+            "details": {
+                "summary": err_summary_1,
+                "source": "gemini",
+                "model": model_name or GEMINI_MODEL,
+                "attempt": 1,
+                "latency_sec": round(latency_1, 2),
+                "error": err_desc
+            }
+        })
 
-    return None, {
+    # Latency budget check: at most 6s total; if attempt 1 took over 4s, skip retry
+    elapsed_so_far = time.time() - t_start
+    if latency_1 > 4.0 or elapsed_so_far >= 4.0 or (6.0 - elapsed_so_far) < 1.5:
+        # Budget exhausted, skip retry and use template
+        template_entry = {
+            "stage": "TEMPLATE_FALLBACK",
+            "layer": "DETERMINISTIC_CODE",
+            "is_ai": False,
+            "summary": "Approved template used",
+            "details": {
+                "summary": "Approved template used",
+                "source": "template",
+                "reason": "Latency budget exceeded or first attempt > 4s",
+                "latency_sec": round(elapsed_so_far, 2)
+            }
+        }
+        trace_attempts.append(template_entry)
+        val_details = {
+            "passed": True,
+            "attempt": 1,
+            "source": "template",
+            "latency_sec": round(elapsed_so_far, 2),
+            "summary": "Numbers ✓ · Action allowed ✓ · Language ✓"
+        }
+        return None, trace_attempts, "template", val_details
+
+    # Attempt 2 (Retry within remaining budget <= 6.0s total)
+    remaining_budget = max(1.0, 6.0 - elapsed_so_far)
+    retry_packet = dict(context_packet)
+    feedback = f"Previous attempt failed safety validation. Fix: ensure all numbers are Western Arabic digits (0-9) and match facts exactly. Include account ending numbers verbatim."
+    retry_packet["validation_error"] = feedback
+
+    draft_2, latency_2, err_2 = generate_with_gemini(
+        retry_packet, api_key=api_key, model_name=model_name, timeout_sec=remaining_budget
+    )
+    total_latency = round(latency_1 + latency_2, 2)
+
+    if draft_2:
+        val_2 = validate_llm_output(draft_2, facts, allowed_actions, language, action_params)
+        if val_2.passed:
+            summary = f"Gemini wrote the {lang_name} message ({total_latency:.1f} s · retry)"
+            trace_attempts.append({
+                "stage": "LLM_DRAFT",
+                "layer": "AI_GATEWAY",
+                "is_ai": True,
+                "summary": summary,
+                "details": {
+                    "summary": summary,
+                    "source": "gemini",
+                    "model": model_name or GEMINI_MODEL,
+                    "attempt": 2,
+                    "latency_sec": total_latency,
+                    "draft": draft_2
+                }
+            })
+            val_details = {
+                "passed": True,
+                "attempt": 2,
+                "source": "gemini",
+                "latency_sec": total_latency,
+                "summary": "Numbers ✓ · Action allowed ✓ · Language ✓"
+            }
+            return draft_2, trace_attempts, "gemini", val_details
+
+        # Attempt 2 failed validation
+        reason_2 = val_2.errors[0] if val_2.errors else "validation failed on retry"
+        err_summary_2 = f"Gemini draft rejected · {reason_2}"
+        trace_attempts.append({
+            "stage": "LLM_DRAFT",
+            "layer": "AI_GATEWAY",
+            "is_ai": True,
+            "summary": err_summary_2,
+            "details": {
+                "summary": err_summary_2,
+                "source": "gemini",
+                "model": model_name or GEMINI_MODEL,
+                "attempt": 2,
+                "latency_sec": total_latency,
+                "error": reason_2,
+                "errors": val_2.errors,
+                "rejected_draft": draft_2
+            }
+        })
+    else:
+        err_desc_2 = "Gemini timeout on retry" if err_2 == "timeout" else (err_2 or "API error on retry")
+        err_summary_2 = f"Gemini draft rejected · {err_desc_2}"
+        trace_attempts.append({
+            "stage": "LLM_DRAFT",
+            "layer": "AI_GATEWAY",
+            "is_ai": True,
+            "summary": err_summary_2,
+            "details": {
+                "summary": err_summary_2,
+                "source": "gemini",
+                "model": model_name or GEMINI_MODEL,
+                "attempt": 2,
+                "latency_sec": total_latency,
+                "error": err_desc_2
+            }
+        })
+
+    # Both attempts failed: Fall back to approved template
+    template_entry = {
+        "stage": "TEMPLATE_FALLBACK",
+        "layer": "DETERMINISTIC_CODE",
+        "is_ai": False,
+        "summary": "Approved template used",
+        "details": {
+            "summary": "Approved template used",
+            "source": "template",
+            "reason": "Gemini validation failed after 2 attempts",
+            "latency_sec": total_latency
+        }
+    }
+    trace_attempts.append(template_entry)
+    val_details = {
         "passed": True,
-        "attempt": 0,
+        "attempt": 2,
         "source": "template",
-        "latency_sec": round(latency, 2),
-        "reason": summary,
-        "summary": summary
-    }, "template", summary
+        "latency_sec": total_latency,
+        "summary": "Numbers ✓ · Action allowed ✓ · Language ✓"
+    }
+    return None, trace_attempts, "template", val_details

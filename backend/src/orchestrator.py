@@ -175,11 +175,12 @@ def process_event(event_req: EventRequest, db_path: Optional[Path] = None) -> Di
         allowed_actions=allowed_actions
     )
 
-    llm_draft, val_details, source_mode, llm_summary = draft_explanation_with_validator(
+    llm_draft, trace_attempts, source_mode, val_details = draft_explanation_with_validator(
         context_packet=context_packet,
         facts=facts,
         allowed_actions=allowed_actions,
-        language=language
+        language=language,
+        action_params=action_params
     )
 
     template_key = code_entry.get("template_key", "mandate_balance_failed")
@@ -190,38 +191,20 @@ def process_event(event_req: EventRequest, db_path: Optional[Path] = None) -> Di
     if source_mode == "gemini" and llm_draft:
         explanation = llm_draft["explanation"]
         action_label = llm_draft.get("action_label", proposed_action)
-        is_ai_draft = True
-        draft_layer = "AI_GATEWAY"
-        draft_details = {
-            "summary": llm_summary,
-            "source": "gemini",
-            "model": GEMINI_MODEL,
-            "language": language,
-            "confidence": llm_draft.get("confidence", 0.95),
-            "explanation": explanation
-        }
     else:
         explanation = template_item.get("explanation", code_entry["customer_friendly_cause"])
         action_label = template_item.get("action_label", proposed_action)
-        is_ai_draft = False
-        draft_layer = "DETERMINISTIC_CODE"
-        draft_details = {
-            "summary": llm_summary,
-            "source": "template",
-            "language": language,
-            "template_key": template_key,
-            "explanation": explanation,
-            "reason": val_details.get("reason", "Template resolution")
-        }
 
-    add_audit_entry(
-        case_id=case_id,
-        stage="LLM_DRAFT",
-        layer=draft_layer,
-        is_ai=is_ai_draft,
-        details=draft_details,
-        db_path=db_path
-    )
+    # Log each draft attempt and/or approved template in audit trail (Rule: Never label a template row LLM_DRAFT)
+    for attempt in trace_attempts:
+        add_audit_entry(
+            case_id=case_id,
+            stage=attempt["stage"],
+            layer=attempt["layer"],
+            is_ai=attempt["is_ai"],
+            details=attempt["details"],
+            db_path=db_path
+        )
 
     # 7. VALIDATOR STAGE
     validator_summary = "Numbers ✓ · Action allowed ✓ · Language ✓"

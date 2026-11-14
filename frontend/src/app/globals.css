@@ -16,10 +16,10 @@ body {
 
 /* Custom phone frame styling */
 .phone-mockup {
-  width: 390px;
-  height: 844px;
-  border-radius: 48px;
-  border: 12px solid #1e293b;
+  width: 380px;
+  max-width: 100%;
+  border-radius: 44px;
+  border: 10px solid #1e293b;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
   overflow: hidden;
   background-color: #f8fafc;

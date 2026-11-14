@@ -1,9 +1,8 @@
 import pytest
 from src.llm import draft_explanation_with_validator
+from src.validator import validate_llm_output
 
 def test_offline_mode_returns_template_fallback():
-    # In offline mode (default DEMO_MODE=offline), draft_explanation_with_validator
-    # must cleanly return source_mode="template" with is_ai=False
     context_packet = {
         "task": "explain_and_propose",
         "language": "mr",
@@ -13,7 +12,7 @@ def test_offline_mode_returns_template_fallback():
         "allowed_actions": ["retry_mandate"]
     }
     
-    draft, details, source_mode, summary = draft_explanation_with_validator(
+    draft, trace_attempts, source_mode, val_details = draft_explanation_with_validator(
         context_packet=context_packet,
         facts={},
         allowed_actions=["retry_mandate"],
@@ -22,12 +21,10 @@ def test_offline_mode_returns_template_fallback():
     
     assert draft is None
     assert source_mode == "template"
-    assert "Offline mode" in details["reason"]
+    assert trace_attempts[0]["stage"] == "TEMPLATE_FALLBACK"
+    assert "Approved template used" in trace_attempts[0]["summary"]
 
 def test_validator_retry_fallback_when_mock_fails():
-    # Test validator with mock invalid output
-    from src.validator import validate_llm_output
-    
     facts = {"emi": 4650}
     invalid_draft = {
         "explanation": "Your loan has guaranteed approval for ₹88888",

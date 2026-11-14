@@ -1,5 +1,5 @@
-import React from "react";
-import { ShieldAlert, Check, X, AlertCircle, Lock } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { ShieldAlert, Check, X, AlertCircle, Lock, Loader2 } from "lucide-react";
 
 interface ConsentCardProps {
   actionName: string;
@@ -22,6 +22,25 @@ export const ConsentCard: React.FC<ConsentCardProps> = ({
   onDecline,
   isProcessing = false,
 }) => {
+  const [hasTapped, setHasTapped] = useState(false);
+  const tappedRef = useRef(false);
+
+  useEffect(() => {
+    tappedRef.current = false;
+    setHasTapped(false);
+  }, [actionName]);
+
+  const handleConfirmClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (tappedRef.current || isProcessing || hasTapped) {
+      return;
+    }
+    tappedRef.current = true;
+    setHasTapped(true);
+    onConfirm();
+  };
+
+  const isButtonDisabled = hasTapped || isProcessing;
   return (
     <div className="bg-white rounded-t-3xl border-t-2 border-[#002970] shadow-2xl p-5 flex flex-col gap-4 animate-in slide-in-from-bottom duration-300">
       {/* Title */}
@@ -76,20 +95,25 @@ export const ConsentCard: React.FC<ConsentCardProps> = ({
       <div className="flex gap-2 pt-1">
         <button
           onClick={onDecline}
-          disabled={isProcessing}
-          className="flex-1 py-3 px-3 rounded-xl border border-slate-300 text-slate-700 font-semibold text-xs hover:bg-slate-50 active:scale-98 transition flex items-center justify-center gap-1.5"
+          disabled={isButtonDisabled}
+          className="flex-1 py-3 px-3 rounded-xl border border-slate-300 text-slate-700 font-semibold text-xs hover:bg-slate-50 active:scale-98 transition flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none"
         >
           <X size={14} />
           <span>Not Now</span>
         </button>
 
         <button
-          onClick={onConfirm}
-          disabled={isProcessing}
-          className="flex-[2] py-3 px-4 rounded-xl bg-[#002970] hover:bg-[#051A44] active:scale-98 text-white font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition"
+          onClick={handleConfirmClick}
+          disabled={isButtonDisabled}
+          className={`flex-[2] py-3 px-4 rounded-xl bg-[#002970] hover:bg-[#051A44] active:scale-98 text-white font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition ${
+            isButtonDisabled ? "opacity-75 cursor-not-allowed pointer-events-none" : ""
+          }`}
         >
-          {isProcessing ? (
-            <span className="animate-spin text-sm">⏳</span>
+          {isButtonDisabled ? (
+            <>
+              <Loader2 size={16} className="animate-spin text-[#00BAF2]" />
+              <span>Authorizing...</span>
+            </>
           ) : (
             <>
               <Check size={16} strokeWidth={2.5} />
