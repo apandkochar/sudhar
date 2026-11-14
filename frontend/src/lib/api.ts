@@ -19,6 +19,7 @@ export interface CaseData {
   moment: string;
   language: string;
   facts: Record<string, any>;
+  playbook_id?: string;
   cause_explanation?: string;
   proposed_action?: string;
   action_label?: string;

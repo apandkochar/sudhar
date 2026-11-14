@@ -1,5 +1,5 @@
-import React from "react";
-import { Sparkles, CheckCircle2, XCircle, ArrowRight, ShieldCheck } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Sparkles, CheckCircle2, XCircle, ArrowRight, ShieldCheck, Volume2, VolumeX, AlertTriangle, Calendar, Clock } from "lucide-react";
 import { LanguageChips } from "./LanguageChips";
 
 interface SudhaarCardProps {
@@ -10,6 +10,7 @@ interface SudhaarCardProps {
   visualData?: Record<string, any>;
   onProposeAction: () => void;
   sourceMode?: string;
+  isDrafting?: boolean;
 }
 
 export const SudhaarCard: React.FC<SudhaarCardProps> = ({
@@ -20,13 +21,43 @@ export const SudhaarCard: React.FC<SudhaarCardProps> = ({
   visualData,
   onProposeAction,
   sourceMode = "template",
+  isDrafting = false,
 }) => {
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  useEffect(() => {
+    // Cancel any speech synthesis on language or explanation change
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    }
+  }, [language, explanation]);
+
+  const handleToggleSpeak = () => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      alert("Text-to-speech not supported in this browser.");
+      return;
+    }
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(explanation);
+    utterance.lang = language === "hi" ? "hi-IN" : language === "mr" ? "mr-IN" : "en-IN";
+    utterance.rate = 0.95;
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
   const isAccountComparison = visualData && visualData.failed_account && visualData.suggested_account;
   const isTimelineMismatch = visualData && visualData.closure_event && visualData.erroneous_debit;
   const isChecklist = visualData && visualData.checklist;
 
   return (
-    <div className="bg-white rounded-t-3xl border-t-2 border-[#00BAF2] shadow-2xl p-5 flex flex-col gap-4 animate-in slide-in-from-bottom duration-300">
+    <div className="bg-white rounded-t-3xl border-t-2 border-[#00BAF2] shadow-2xl p-4 md:p-5 flex flex-col gap-3.5 animate-in slide-in-from-bottom duration-300">
       {/* Header bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
@@ -43,21 +74,68 @@ export const SudhaarCard: React.FC<SudhaarCardProps> = ({
           </div>
         </div>
 
-        <LanguageChips
-          currentLanguage={language}
-          onSelectLanguage={onLanguageChange}
-        />
+        {/* Listen Button (Requirement 7) & Language Chips */}
+        <div className="flex items-center gap-2">
+          {!isDrafting && (
+            <button
+              onClick={handleToggleSpeak}
+              title="Listen to explanation"
+              className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold flex items-center gap-1 transition ${
+                isSpeaking
+                  ? "bg-purple-100 text-purple-700 border border-purple-300 animate-pulse font-bold"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200"
+              }`}
+            >
+              {isSpeaking ? (
+                <>
+                  <VolumeX size={12} />
+                  <span>Stop</span>
+                </>
+              ) : (
+                <>
+                  <Volume2 size={12} className="text-[#002970]" />
+                  <span>{language === "hi" ? "सुनें" : language === "mr" ? "ऐका" : "Listen"}</span>
+                </>
+              )}
+            </button>
+          )}
+
+          <LanguageChips
+            currentLanguage={language}
+            onSelectLanguage={onLanguageChange}
+          />
+        </div>
       </div>
 
-      {/* Explanation text */}
-      <div className="bg-blue-50/60 rounded-xl p-3 border border-blue-100/80">
-        <p className="text-xs text-slate-800 leading-relaxed font-medium">
-          {explanation}
-        </p>
-      </div>
+      {/* Explanation text or Shimmering Skeleton (Requirement 3) */}
+      {isDrafting ? (
+        <div className="bg-blue-50/60 rounded-xl p-3.5 border border-blue-100/80 space-y-2.5 animate-pulse">
+          <div className="flex items-center gap-2 text-xs font-semibold text-[#002970]">
+            <Sparkles size={13} className="text-[#00BAF2] animate-spin" />
+            <span>
+              {language === "hi"
+                ? "सुधार लिख रहा है..."
+                : language === "mr"
+                ? "सुधार लिहित आहे..."
+                : "Sudhaar is writing…"}
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            <div className="h-3 bg-blue-200/60 rounded w-full" />
+            <div className="h-3 bg-blue-200/60 rounded w-5/6" />
+            <div className="h-3 bg-blue-200/60 rounded w-3/4" />
+          </div>
+        </div>
+      ) : (
+        <div className="bg-blue-50/60 rounded-xl p-3 border border-blue-100/80">
+          <p className="text-xs text-slate-800 leading-relaxed font-medium">
+            {explanation}
+          </p>
+        </div>
+      )}
 
-      {/* Visual Component */}
-      {isAccountComparison && (
+      {/* Visual Component: Rohit Account Comparison */}
+      {isAccountComparison && !isDrafting && (
         <div className="grid grid-cols-2 gap-2 text-xs">
           {/* Failed Account */}
           <div className="p-2.5 rounded-xl border border-red-200 bg-red-50/40 flex flex-col justify-between">
@@ -96,23 +174,51 @@ export const SudhaarCard: React.FC<SudhaarCardProps> = ({
         </div>
       )}
 
-      {/* Timeline Mismatch Visual (Asha) */}
-      {isTimelineMismatch && (
-        <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs">
-          <div className="text-left">
-            <span className="text-[10px] text-slate-500 block">Loan Closed</span>
-            <span className="font-bold text-emerald-700">{visualData.closure_event.date}</span>
+      {/* Visual Component: Asha Timeline Mismatch Side-by-Side (Requirement 5) */}
+      {isTimelineMismatch && !isDrafting && (
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          {/* Card 1: Verified Loan Closure */}
+          <div className="p-2.5 rounded-xl border border-emerald-200 bg-emerald-50/50 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-emerald-800 mb-1">
+              <span className="font-bold text-[11px] flex items-center gap-1">
+                <CheckCircle2 size={13} className="text-emerald-600" />
+                <span>Loan Closed</span>
+              </span>
+              <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1 py-0.2 rounded font-mono font-bold">
+                VERIFIED
+              </span>
+            </div>
+            <p className="text-xs font-bold text-slate-900 mt-1">
+              {visualData.closure_event.date}
+            </p>
+            <span className="text-[10px] text-slate-500 mt-0.5">
+              Settled in Full
+            </span>
           </div>
-          <ArrowRight size={14} className="text-slate-400" />
-          <div className="text-right">
-            <span className="text-[10px] text-red-500 block">Excess Debit</span>
-            <span className="font-bold text-red-600">{visualData.erroneous_debit.amount} ({visualData.erroneous_debit.date})</span>
+
+          {/* Card 2: Erroneous Clearing Debit */}
+          <div className="p-2.5 rounded-xl border border-rose-300 bg-rose-50/60 flex flex-col justify-between relative shadow-xs">
+            <div className="flex items-center justify-between text-rose-700 mb-1">
+              <span className="font-bold text-[11px] flex items-center gap-1">
+                <AlertTriangle size={13} className="text-rose-600" />
+                <span>EMI Debited</span>
+              </span>
+              <span className="text-[9px] bg-rose-100 text-rose-700 px-1 py-0.2 rounded font-mono font-bold">
+                CLEARING ERROR
+              </span>
+            </div>
+            <p className="text-xs font-bold text-rose-700 mt-1">
+              {visualData.erroneous_debit.amount} on {visualData.erroneous_debit.date}
+            </p>
+            <span className="text-[10px] text-slate-500 mt-0.5">
+              ICICI ••7810
+            </span>
           </div>
         </div>
       )}
 
-      {/* Checklist Visual (Sunita) */}
-      {isChecklist && (
+      {/* Visual Component: Sunita Checklist */}
+      {isChecklist && !isDrafting && (
         <div className="space-y-1.5 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs">
           {visualData.checklist.map((item: any, i: number) => (
             <div key={i} className="flex items-center gap-2 text-[11px] text-slate-700">
@@ -133,7 +239,8 @@ export const SudhaarCard: React.FC<SudhaarCardProps> = ({
       {/* Action CTA Button */}
       <button
         onClick={onProposeAction}
-        className="w-full py-3.5 px-4 bg-[#002970] hover:bg-[#051A44] active:scale-[0.99] text-white font-bold rounded-2xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-950/20 transition"
+        disabled={isDrafting}
+        className="w-full py-3.5 px-4 bg-[#002970] hover:bg-[#051A44] active:scale-[0.99] text-white font-bold rounded-2xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-950/20 transition disabled:opacity-50"
       >
         <span>{actionLabel}</span>
         <ArrowRight size={15} />
@@ -141,4 +248,3 @@ export const SudhaarCard: React.FC<SudhaarCardProps> = ({
     </div>
   );
 };
-

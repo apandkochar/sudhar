@@ -44,15 +44,22 @@ def simulate_tool_execution(
     elif action == "create_ticket":
         ticket_type = params.get("ticket_type", "REFUND_AND_NOC")
         refund_amount = params.get("refund_amount", 4500)
+        ref_ticket = f"TKT-REF-{suffix}"
+        ref_noc = f"NOC-REQ-{uuid.uuid4().hex[:6].upper()}"
+        ref_bureau = f"BUR-REM-{uuid.uuid4().hex[:6].upper()}"
         return {
             "status": "SUCCESS",
             "action": action,
-            "reference_id": f"TKT-REF-{suffix}",
+            "reference_id": ref_ticket,
+            "refund_reference": ref_ticket,
+            "noc_reference": ref_noc,
+            "bureau_reference": ref_bureau,
             "ticket_type": ticket_type,
             "refund_amount": refund_amount,
-            "refund_sla": "3-5 business days",
-            "noc_status": "QUEUED_FOR_DISPATCH",
-            "message": f"Refund ticket #{suffix} raised for ₹{refund_amount} and NOC requested",
+            "refund_sla": "3-5 business days to ICICI Bank ending 7810",
+            "noc_status": "QUEUED_FOR_DISPATCH (within 24 hours)",
+            "bureau_status": "SCHEDULED (next lender reporting cycle)",
+            "message": "3 actions authorized: Refund ticket raised, NOC queued, and bureau check scheduled",
             "executed_at": now_iso
         }
     elif action == "send_vkyc_resume_link":

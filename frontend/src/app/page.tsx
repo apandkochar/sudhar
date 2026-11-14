@@ -92,6 +92,207 @@ export default function Home() {
     handleTriggerScenario(activePersonaId);
   }, []);
 
+  const getDeterministicRows = (personaId: string, lang: string): AuditEntry[] => {
+    const langNames: Record<string, string> = { mr: "Marathi", hi: "Hindi", en: "English" };
+    const langName = langNames[lang] || "Marathi";
+    const nowIso = new Date().toISOString();
+
+    if (personaId === "asha") {
+      return [
+        {
+          entry_id: "AUD-DET-01",
+          case_id: "CASE-EVT-ASHA-DEMO-01",
+          stage: "EVENT",
+          layer: "DETERMINISTIC_CODE",
+          is_ai: false,
+          timestamp: nowIso,
+          details: {
+            summary: "EMI debited after closure · ₹4,500 · 1 day late",
+            event_type: "EMI_DEBITED_AFTER_CLOSURE",
+            code: "LMS_POST_CLOSURE_DEBIT"
+          }
+        },
+        {
+          entry_id: "AUD-DET-02",
+          case_id: "CASE-EVT-ASHA-DEMO-01",
+          stage: "PLAYBOOK",
+          layer: "DETERMINISTIC_CODE",
+          is_ai: false,
+          timestamp: nowIso,
+          details: {
+            summary: "Post-Closure Erroneous EMI Debit Rescue",
+            playbook_name: "Post-Closure Erroneous EMI Debit Rescue"
+          }
+        },
+        {
+          entry_id: "AUD-DET-03",
+          case_id: "CASE-EVT-ASHA-DEMO-01",
+          stage: "FACTS",
+          layer: "DETERMINISTIC_CODE",
+          is_ai: false,
+          timestamp: nowIso,
+          details: {
+            summary: `Loan closed 04 Nov · Debited 05 Nov · ₹4,500 excess · language ${langName}`,
+            language: langName
+          }
+        },
+        {
+          entry_id: "AUD-DET-04",
+          case_id: "CASE-EVT-ASHA-DEMO-01",
+          stage: "CODE_LOOKUP",
+          layer: "DETERMINISTIC_CODE",
+          is_ai: false,
+          timestamp: nowIso,
+          details: {
+            summary: "LMS_POST_CLOSURE_DEBIT → debit queued before settlement file sync",
+            code: "LMS_POST_CLOSURE_DEBIT"
+          }
+        },
+        {
+          entry_id: "AUD-DET-05",
+          case_id: "CASE-EVT-ASHA-DEMO-01",
+          stage: "RULES",
+          layer: "DETERMINISTIC_CODE",
+          is_ai: false,
+          timestamp: nowIso,
+          details: {
+            summary: "Allowed actions: create_ticket, request_noc, request_bureau_correction",
+            allowed_actions: ["create_ticket", "request_noc", "request_bureau_correction"]
+          }
+        }
+      ];
+    } else if (personaId === "sunita") {
+      return [
+        {
+          entry_id: "AUD-DET-01",
+          case_id: "CASE-EVT-SUNITA-DEMO-01",
+          stage: "EVENT",
+          layer: "DETERMINISTIC_CODE",
+          is_ai: false,
+          timestamp: nowIso,
+          details: {
+            summary: "Video KYC session disconnected · 72h window",
+            event_type: "VKYC_DROPPED",
+            code: "VKYC_NET_DROP"
+          }
+        },
+        {
+          entry_id: "AUD-DET-02",
+          case_id: "CASE-EVT-SUNITA-DEMO-01",
+          stage: "PLAYBOOK",
+          layer: "DETERMINISTIC_CODE",
+          is_ai: false,
+          timestamp: nowIso,
+          details: {
+            summary: "Video KYC Interrupted Call Resume Playbook",
+            playbook_name: "Video KYC Interrupted Call Resume Playbook"
+          }
+        },
+        {
+          entry_id: "AUD-DET-03",
+          case_id: "CASE-EVT-SUNITA-DEMO-01",
+          stage: "FACTS",
+          layer: "DETERMINISTIC_CODE",
+          is_ai: false,
+          timestamp: nowIso,
+          details: {
+            summary: `PAN verified ✓ · Bandwidth drop · language ${langName}`,
+            language: langName
+          }
+        },
+        {
+          entry_id: "AUD-DET-04",
+          case_id: "CASE-EVT-SUNITA-DEMO-01",
+          stage: "CODE_LOOKUP",
+          layer: "DETERMINISTIC_CODE",
+          is_ai: false,
+          timestamp: nowIso,
+          details: {
+            summary: "VKYC_NET_DROP → bandwidth drop below 100kbps threshold",
+            code: "VKYC_NET_DROP"
+          }
+        },
+        {
+          entry_id: "AUD-DET-05",
+          case_id: "CASE-EVT-SUNITA-DEMO-01",
+          stage: "RULES",
+          layer: "DETERMINISTIC_CODE",
+          is_ai: false,
+          timestamp: nowIso,
+          details: {
+            summary: "Allowed actions: send_vkyc_resume_link, book_callback",
+            allowed_actions: ["send_vkyc_resume_link", "book_callback"]
+          }
+        }
+      ];
+    } else {
+      return [
+        {
+          entry_id: "AUD-DET-01",
+          case_id: "CASE-EVT-ROHIT-DEMO-01",
+          stage: "EVENT",
+          layer: "DETERMINISTIC_CODE",
+          is_ai: false,
+          timestamp: nowIso,
+          details: {
+            summary: "Mandate failed · code AP15 · attempt 1",
+            code: "AP15",
+            event_type: "MANDATE_FAILED"
+          }
+        },
+        {
+          entry_id: "AUD-DET-02",
+          case_id: "CASE-EVT-ROHIT-DEMO-01",
+          stage: "PLAYBOOK",
+          layer: "DETERMINISTIC_CODE",
+          is_ai: false,
+          timestamp: nowIso,
+          details: {
+            summary: "Mandate retry playbook",
+            playbook_name: "Mandate retry playbook"
+          }
+        },
+        {
+          entry_id: "AUD-DET-03",
+          case_id: "CASE-EVT-ROHIT-DEMO-01",
+          stage: "FACTS",
+          layer: "DETERMINISTIC_CODE",
+          is_ai: false,
+          timestamp: nowIso,
+          details: {
+            summary: `HDFC ••9012 failed · SBI ••4521 available · language ${langName}`,
+            language: langName
+          }
+        },
+        {
+          entry_id: "AUD-DET-04",
+          case_id: "CASE-EVT-ROHIT-DEMO-01",
+          stage: "CODE_LOOKUP",
+          layer: "DETERMINISTIC_CODE",
+          is_ai: false,
+          timestamp: nowIso,
+          details: {
+            summary: "AP15 → required balance not maintained",
+            code: "AP15",
+            cause: "required balance not maintained"
+          }
+        },
+        {
+          entry_id: "AUD-DET-05",
+          case_id: "CASE-EVT-ROHIT-DEMO-01",
+          stage: "RULES",
+          layer: "DETERMINISTIC_CODE",
+          is_ai: false,
+          timestamp: nowIso,
+          details: {
+            summary: "Allowed actions: retry_mandate, book_callback",
+            allowed_actions: ["retry_mandate", "book_callback"]
+          }
+        }
+      ];
+    }
+  };
+
   const handleTriggerScenario = async (personaId: string) => {
     const config = PERSONAS_CONFIG[personaId];
     if (!config) return;
@@ -101,6 +302,27 @@ export default function Home() {
     setCardStep("EXPLAIN");
     setIsProcessing(true);
     consentLockRef.current = false;
+
+    // Requirement 3: Progressive trace - deterministic rows appear instantly
+    const initialAudit = getDeterministicRows(personaId, config.preferred_language);
+    setCaseData({
+      case_id: `CASE-${config.event.event_id}`,
+      customer_id: config.event.customer_id,
+      persona_id: personaId,
+      status: "PROPOSED",
+      moment: config.event.event_type,
+      language: config.preferred_language,
+      facts: { name: config.name, loan_details: { loan_amount: config.loan_amount }, ...config.event.payload },
+      playbook_id: personaId === "asha" ? "PB-POST-CLOSURE-01" : personaId === "sunita" ? "PB-VKYC-01" : "PB-MANDATE-01",
+      proposed_action: personaId === "asha" ? "create_ticket" : personaId === "sunita" ? "send_vkyc_resume_link" : "retry_mandate",
+      action_label: personaId === "asha" ? "रिफंड (₹4,500) और NOC का अनुरोध करें" : personaId === "sunita" ? "केवाईसी रिज्यूम लिंक भेजें" : "ई-मँडेट पुन्हा सेट करा",
+      action_params: {},
+      allowed_actions: [],
+      cause_explanation: "",
+      visual_data: undefined,
+      source_mode: "gemini",
+      audit_trail: initialAudit,
+    });
 
     try {
       const data = await sendEvent(config.event);
@@ -114,7 +336,11 @@ export default function Home() {
 
   const handleLanguageChange = async (newLang: string) => {
     setCurrentLanguage(newLang);
+    setIsProcessing(true);
     if (caseData) {
+      // Instant progressive feedback with new language
+      const updatedAudit = getDeterministicRows(activePersonaId, newLang);
+      setCaseData((prev) => prev ? { ...prev, language: newLang, audit_trail: updatedAudit } : null);
       try {
         const config = PERSONAS_CONFIG[activePersonaId];
         const updated = await sendEvent({
@@ -124,6 +350,8 @@ export default function Home() {
         setCaseData(updated);
       } catch (e) {
         console.error("Failed to reload language:", e);
+      } finally {
+        setIsProcessing(false);
       }
     }
   };
@@ -144,6 +372,9 @@ export default function Home() {
       });
 
       const updatedCase = await getCaseDetails(caseData.case_id);
+      if (!updatedCase.receipt && res) {
+        updatedCase.receipt = res;
+      }
       setCaseData(updatedCase);
       setCardStep("RECEIPT");
 
@@ -302,6 +533,7 @@ export default function Home() {
                       visualData={caseData.visual_data}
                       onProposeAction={() => setCardStep("CONSENT")}
                       sourceMode={caseData.source_mode}
+                      isDrafting={isProcessing}
                     />
                   )}
 
@@ -311,21 +543,21 @@ export default function Home() {
                       targetAccount={caseData.action_params?.bank_name}
                       whatItDoes={
                         activePersonaId === "asha"
-                          ? "Initiate an expedited refund of ₹4,500 to ICICI account ending 7810 and request official No-Dues Certificate (NOC)."
+                          ? "1. Raise ₹4,500 refund ticket for excess debit to ICICI Bank ending 7810 (SLA 3-5 days)\n2. Expedite official No-Dues Certificate (NOC) dispatch\n3. Schedule credit bureau record check to protect CIBIL score"
                           : activePersonaId === "sunita"
                           ? "Send a secure 72-hour direct video KYC resume link to your verified mobile ending 3210."
                           : "Set up auto-debit on your State Bank of India account ending 4521 for monthly EMI."
                       }
                       whatItDoesNotDo={
                         activePersonaId === "asha"
-                          ? "Will not reopen your loan or negatively affect your CIBIL score."
+                          ? "Will not reopen your closed loan. Does not require visiting a branch or re-uploading documents."
                           : activePersonaId === "sunita"
                           ? "Does not require re-uploading documents already verified."
                           : "Will not deduct money right now. No setup fee is charged."
                       }
                       howToUndo={
                         activePersonaId === "asha"
-                          ? "You can track ticket resolution in 24x7 Help section."
+                          ? "You can track refund status and NOC dispatch anytime in the 24x7 Help section."
                           : activePersonaId === "sunita"
                           ? "You can also resume directly from your loan dashboard."
                           : "You can modify or cancel this mandate anytime in the app or via netbanking."
@@ -354,6 +586,7 @@ export default function Home() {
             auditTrail={caseData?.audit_trail || []}
             activeCaseId={caseData?.case_id}
             sourceMode={caseData?.source_mode}
+            isDrafting={isProcessing}
           />
         </div>
       </main>

@@ -9,6 +9,7 @@ interface LiveTraceProps {
   activeCaseId?: string;
   sourceMode?: string;
   showConsoleLink?: boolean;
+  isDrafting?: boolean;
 }
 
 export const LiveTrace: React.FC<LiveTraceProps> = ({
@@ -16,6 +17,7 @@ export const LiveTrace: React.FC<LiveTraceProps> = ({
   activeCaseId,
   sourceMode = "template",
   showConsoleLink = true,
+  isDrafting = false,
 }) => {
   const [selectedEntry, setSelectedEntry] = useState<{ entry: AuditEntry; index: number } | null>(null);
   const [expandedInline, setExpandedInline] = useState<Record<string, boolean>>({});
@@ -125,10 +127,6 @@ export const LiveTrace: React.FC<LiveTraceProps> = ({
           <div>
             <h2 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
               <span>Operator Execution Trace</span>
-              <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1 font-semibold">
-                <Database size={10} />
-                <span>SQLite: Verified & Persistent</span>
-              </span>
             </h2>
             <p className="text-[11px] text-slate-400 font-mono">
               Case: {activeCaseId || "Standby / Idle"}
@@ -232,6 +230,32 @@ export const LiveTrace: React.FC<LiveTraceProps> = ({
               </div>
             );
           })
+        )}
+
+        {/* Pending Progressive Row for LLM Gateway (Requirement 3) */}
+        {isDrafting && (
+          <div className="bg-purple-950/40 rounded-lg border border-purple-500/50 px-3 py-1.5 text-xs flex items-center justify-between gap-2 animate-pulse shadow-sm">
+            <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+              <span className="text-[10px] font-mono text-purple-400 font-bold w-5 flex-shrink-0">
+                {String(auditTrail.length + 1).padStart(2, "0")}
+              </span>
+              <span className="font-mono text-xs md:text-sm font-bold text-purple-300 tracking-wide uppercase w-28 md:w-36 flex-shrink-0 truncate">
+                LLM_DRAFT
+              </span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-purple-900/80 text-purple-200 border border-purple-400 shadow-sm flex-shrink-0">
+                <Sparkles size={11} className="text-purple-300 animate-spin" />
+                <span>AI MODEL (Gemini)</span>
+              </span>
+              <span className="text-purple-200 text-xs md:text-[13px] font-medium truncate ml-1 flex-1">
+                Sudhaar is drafting explanation with Gemini...
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span className="text-[10px] font-mono text-purple-300 bg-purple-900/60 px-2 py-0.5 rounded border border-purple-600/50">
+                writing…
+              </span>
+            </div>
+          </div>
         )}
         <div ref={traceEndRef} />
       </div>

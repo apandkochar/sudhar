@@ -1,9 +1,11 @@
 import json
 import logging
+import os
 import time
 from typing import Any, Dict, List, Optional, Tuple
 import httpx
 
+from src.cache import get_cached_llm_response, save_cached_llm_response
 from src.config import DEMO_MODE, GEMINI_API_KEY, GEMINI_MODEL
 from src.validator import validate_llm_output, ValidationResult
 
@@ -16,13 +18,13 @@ Your job: Explain why a loan moment broke in clear, reassuring language, and ask
 
 NON-NEGOTIABLE SAFETY RULES:
 1. Rules decide, you only speak. The allowed action and facts are given to you. NEVER invent a new action, interest rate, fee, or outcome.
-2. Grounded facts ONLY. NEVER invent, round, or alter any numbers, rupee amounts, or dates. Only reference numbers that exist in facts.
+2. Grounded facts ONLY. NEVER invent, round, or alter any numbers, rupee amounts, or dates. Only reference numbers and dates that exist in facts.
 3. NEVER promise loan approval, guarantee disbursal, or use banned phrases like "guaranteed", "pre-approved", or "100% approved".
 4. You NEVER move money, waive charges, or edit KYC. All actions require customer consent.
 5. Language: You MUST write the explanation and action_label strictly in the requested language (Marathi for 'mr', Hindi for 'hi', English for 'en'). Use natural, culturally respectful phrasing.
 6. Question for permission: End the explanation with a polite question asking for permission to proceed (e.g. Marathi: "...त्या खात्यावरून ई-मँडेट पुन्हा सेट करू का?", Hindi: "...क्या हम उस खाते से ई-मैंडेट दोबारा शुरू करें?", English: "...Shall we set up auto-debit using that account?").
 7. Western Arabic digits ONLY: You MUST write ALL numbers and amounts using Western Arabic numerals (0, 1, 2, 3, 4, 5, 6, 7, 8, 9). Do NOT write Devanagari numerals (०, १, २, etc.).
-8. Verbatim account endings: You MUST include the exact masked account numbers and last 4 digits verbatim from facts (e.g. '9012' for the failed account and '4521' for the suggested SBI account).
+8. Verbatim account endings: You MUST include the exact masked account numbers and last 4 digits verbatim from facts (e.g. '9012', '4521', '7810').
 
 You MUST respond strictly with a valid JSON object matching this schema:
 {
@@ -58,7 +60,11 @@ Cause from Code Table: {context_packet.get('cause')}
 Allowed Actions: {json.dumps(context_packet.get('allowed_actions'))}
 Case Facts: {json.dumps(context_packet.get('facts'))}
 
-CRITICAL: Use Western digits (0-9) only. Include account ending numbers verbatim.
+CRITICAL RULES:
+- Use Western digits (0-9) only.
+- Include account ending numbers (e.g. 7810, 4521, 9012) verbatim in the explanation text.
+- Dates must strictly match facts.
+- End with a polite question asking for customer consent.
 {context_packet.get('validation_error', '')}
 
 Produce the structured JSON response in {context_packet.get('language')}."""
@@ -111,19 +117,25 @@ def draft_explanation_with_validator(
     model_name: Optional[str] = None
 ) -> Tuple[Optional[Dict[str, Any]], List[Dict[str, Any]], str, Dict[str, Any]]:
     """
-    Executes the LLM gateway with strict latency budget and Rule 2 validation:
-    - Total Gemini budget: <= 6.0 seconds total.
-    - If attempt 1 takes > 4.0s, skip retry and fall back to template.
-    - Log exact failure reason for each rejected attempt (AI MODEL purple badge).
-    - If template used, separate row 'Approved template used' (deterministic badge).
-    Returns: (output_draft_dict, trace_attempts_list, source_mode, val_details)
+    Executes the LLM gateway with strict latency budget, cache fallback, and Rule 2 validation:
+    1. If offline: return template.
+    2. Attempt Gemini generation (<= 4.0s timeout).
+    3. If valid: cache response for (persona, language) and return.
+    4. If rejected: log exact failure reason with purple AI badge.
+    5. If 429/timeout/invalid key/double failure:
+       Check cache for (persona, language) -> serve cached text with 'Cached Gemini draft · validated earlier'.
+    6. Only if cache missing: fall back to approved template ('Approved template used').
     """
     lang_map = {"mr": "Marathi", "hi": "Hindi", "en": "English"}
     lang_name = lang_map.get(language, "Marathi")
     trace_attempts: List[Dict[str, Any]] = []
 
-    # If offline mode, directly use template
-    if DEMO_MODE == "offline" or not (api_key or GEMINI_API_KEY):
+    persona_id = (context_packet.get("facts", {}).get("persona_id") or 
+                  facts.get("persona_id") or 
+                  context_packet.get("persona_id") or "rohit").lower()
+
+    # In strict offline mode, serve template directly
+    if os.getenv("DEMO_MODE", DEMO_MODE) == "offline":
         template_entry = {
             "stage": "TEMPLATE_FALLBACK",
             "layer": "DETERMINISTIC_CODE",
@@ -145,7 +157,7 @@ def draft_explanation_with_validator(
         }
         return None, [template_entry], "template", val_details
 
-    # Attempt 1 (4.0s timeout budget)
+    # Attempt 1: Call Gemini
     t_start = time.time()
     attempt_1_timeout = 4.0
     draft_1, latency_1, err_1 = generate_with_gemini(
@@ -155,6 +167,8 @@ def draft_explanation_with_validator(
     if draft_1:
         val_1 = validate_llm_output(draft_1, facts, allowed_actions, language, action_params)
         if val_1.passed:
+            # Save validated response to cache
+            save_cached_llm_response(persona_id, language, draft_1)
             summary = f"Gemini wrote the {lang_name} message ({latency_1:.1f} s)"
             trace_attempts.append({
                 "stage": "LLM_DRAFT",
@@ -179,7 +193,7 @@ def draft_explanation_with_validator(
             }
             return draft_1, trace_attempts, "gemini", val_details
 
-        # Attempt 1 rejected by safety validator: Log exact failure reason with purple AI badge
+        # Attempt 1 rejected by safety validator
         reason_1 = val_1.errors[0] if val_1.errors else "validation failed"
         err_summary_1 = f"Gemini draft rejected · {reason_1}"
         trace_attempts.append({
@@ -199,7 +213,7 @@ def draft_explanation_with_validator(
             }
         })
     else:
-        # Error or timeout on attempt 1
+        # Error / timeout / invalid key on attempt 1
         err_desc = "Gemini timeout" if err_1 == "timeout" else (err_1 or "API error")
         err_summary_1 = f"Gemini draft rejected · {err_desc} ({latency_1:.1f} s)"
         trace_attempts.append({
@@ -217,108 +231,101 @@ def draft_explanation_with_validator(
             }
         })
 
-    # Latency budget check: at most 6s total; if attempt 1 took over 4s, skip retry
+    # Latency budget check for retry
     elapsed_so_far = time.time() - t_start
-    if latency_1 > 4.0 or elapsed_so_far >= 4.0 or (6.0 - elapsed_so_far) < 1.5:
-        # Budget exhausted, skip retry and use template
-        template_entry = {
-            "stage": "TEMPLATE_FALLBACK",
-            "layer": "DETERMINISTIC_CODE",
-            "is_ai": False,
-            "summary": "Approved template used",
-            "details": {
-                "summary": "Approved template used",
-                "source": "template",
-                "reason": "Latency budget exceeded or first attempt > 4s",
-                "latency_sec": round(elapsed_so_far, 2)
-            }
-        }
-        trace_attempts.append(template_entry)
-        val_details = {
-            "passed": True,
-            "attempt": 1,
-            "source": "template",
-            "latency_sec": round(elapsed_so_far, 2),
-            "summary": "Numbers ✓ · Action allowed ✓ · Language ✓"
-        }
-        return None, trace_attempts, "template", val_details
+    if latency_1 <= 4.0 and elapsed_so_far < 4.0 and (6.0 - elapsed_so_far) >= 1.5 and draft_1:
+        # Attempt 2 (Retry within remaining budget <= 6.0s total)
+        remaining_budget = max(1.0, 6.0 - elapsed_so_far)
+        retry_packet = dict(context_packet)
+        feedback = f"Previous attempt failed safety validation. Fix: ensure all numbers are Western Arabic digits (0-9) and match facts exactly. Include account ending numbers verbatim."
+        retry_packet["validation_error"] = feedback
 
-    # Attempt 2 (Retry within remaining budget <= 6.0s total)
-    remaining_budget = max(1.0, 6.0 - elapsed_so_far)
-    retry_packet = dict(context_packet)
-    feedback = f"Previous attempt failed safety validation. Fix: ensure all numbers are Western Arabic digits (0-9) and match facts exactly. Include account ending numbers verbatim."
-    retry_packet["validation_error"] = feedback
+        draft_2, latency_2, err_2 = generate_with_gemini(
+            retry_packet, api_key=api_key, model_name=model_name, timeout_sec=remaining_budget
+        )
+        total_latency = round(latency_1 + latency_2, 2)
 
-    draft_2, latency_2, err_2 = generate_with_gemini(
-        retry_packet, api_key=api_key, model_name=model_name, timeout_sec=remaining_budget
-    )
-    total_latency = round(latency_1 + latency_2, 2)
+        if draft_2:
+            val_2 = validate_llm_output(draft_2, facts, allowed_actions, language, action_params)
+            if val_2.passed:
+                # Save validated response to cache
+                save_cached_llm_response(persona_id, language, draft_2)
+                summary = f"Gemini wrote the {lang_name} message ({total_latency:.1f} s · retry)"
+                trace_attempts.append({
+                    "stage": "LLM_DRAFT",
+                    "layer": "AI_GATEWAY",
+                    "is_ai": True,
+                    "summary": summary,
+                    "details": {
+                        "summary": summary,
+                        "source": "gemini",
+                        "model": model_name or GEMINI_MODEL,
+                        "attempt": 2,
+                        "latency_sec": total_latency,
+                        "draft": draft_2
+                    }
+                })
+                val_details = {
+                    "passed": True,
+                    "attempt": 2,
+                    "source": "gemini",
+                    "latency_sec": total_latency,
+                    "summary": "Numbers ✓ · Action allowed ✓ · Language ✓"
+                }
+                return draft_2, trace_attempts, "gemini", val_details
 
-    if draft_2:
-        val_2 = validate_llm_output(draft_2, facts, allowed_actions, language, action_params)
-        if val_2.passed:
-            summary = f"Gemini wrote the {lang_name} message ({total_latency:.1f} s · retry)"
+            # Attempt 2 failed validation
+            reason_2 = val_2.errors[0] if val_2.errors else "validation failed on retry"
+            err_summary_2 = f"Gemini draft rejected · {reason_2}"
             trace_attempts.append({
                 "stage": "LLM_DRAFT",
                 "layer": "AI_GATEWAY",
                 "is_ai": True,
-                "summary": summary,
+                "summary": err_summary_2,
                 "details": {
-                    "summary": summary,
+                    "summary": err_summary_2,
                     "source": "gemini",
                     "model": model_name or GEMINI_MODEL,
                     "attempt": 2,
                     "latency_sec": total_latency,
-                    "draft": draft_2
+                    "error": reason_2,
+                    "errors": val_2.errors,
+                    "rejected_draft": draft_2
                 }
             })
-            val_details = {
-                "passed": True,
-                "attempt": 2,
-                "source": "gemini",
-                "latency_sec": total_latency,
-                "summary": "Numbers ✓ · Action allowed ✓ · Language ✓"
-            }
-            return draft_2, trace_attempts, "gemini", val_details
 
-        # Attempt 2 failed validation
-        reason_2 = val_2.errors[0] if val_2.errors else "validation failed on retry"
-        err_summary_2 = f"Gemini draft rejected · {reason_2}"
+    # Requirement 1: On Gemini 429/timeout/failure, serve CACHED response first!
+    cached_draft = get_cached_llm_response(persona_id, language)
+    if cached_draft:
+        cached_summary = "Cached Gemini draft · validated earlier"
         trace_attempts.append({
             "stage": "LLM_DRAFT",
             "layer": "AI_GATEWAY",
             "is_ai": True,
-            "summary": err_summary_2,
+            "summary": cached_summary,
             "details": {
-                "summary": err_summary_2,
-                "source": "gemini",
+                "summary": cached_summary,
+                "source": "gemini_cache",
                 "model": model_name or GEMINI_MODEL,
-                "attempt": 2,
-                "latency_sec": total_latency,
-                "error": reason_2,
-                "errors": val_2.errors,
-                "rejected_draft": draft_2
+                "attempt": 1,
+                "latency_sec": 0.05,
+                "explanation": cached_draft.get("explanation"),
+                "proposed_action": cached_draft.get("proposed_action"),
+                "action_label": cached_draft.get("action_label"),
+                "confidence": cached_draft.get("confidence", 0.95),
+                "cached_at": cached_draft.get("cached_at")
             }
         })
-    else:
-        err_desc_2 = "Gemini timeout on retry" if err_2 == "timeout" else (err_2 or "API error on retry")
-        err_summary_2 = f"Gemini draft rejected · {err_desc_2}"
-        trace_attempts.append({
-            "stage": "LLM_DRAFT",
-            "layer": "AI_GATEWAY",
-            "is_ai": True,
-            "summary": err_summary_2,
-            "details": {
-                "summary": err_summary_2,
-                "source": "gemini",
-                "model": model_name or GEMINI_MODEL,
-                "attempt": 2,
-                "latency_sec": total_latency,
-                "error": err_desc_2
-            }
-        })
+        val_details = {
+            "passed": True,
+            "attempt": 1,
+            "source": "gemini_cache",
+            "latency_sec": 0.05,
+            "summary": "Numbers ✓ · Action allowed ✓ · Language ✓"
+        }
+        return cached_draft, trace_attempts, "gemini", val_details
 
-    # Both attempts failed: Fall back to approved template
+    # Only if cache missing: fall back to approved template
     template_entry = {
         "stage": "TEMPLATE_FALLBACK",
         "layer": "DETERMINISTIC_CODE",
@@ -327,16 +334,16 @@ def draft_explanation_with_validator(
         "details": {
             "summary": "Approved template used",
             "source": "template",
-            "reason": "Gemini validation failed after 2 attempts",
-            "latency_sec": total_latency
+            "reason": "Gemini unavailable and no cache found",
+            "latency_sec": 0.0
         }
     }
     trace_attempts.append(template_entry)
     val_details = {
         "passed": True,
-        "attempt": 2,
+        "attempt": 0,
         "source": "template",
-        "latency_sec": total_latency,
+        "latency_sec": 0.0,
         "summary": "Numbers ✓ · Action allowed ✓ · Language ✓"
     }
     return None, trace_attempts, "template", val_details

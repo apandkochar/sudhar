@@ -1,0 +1,137 @@
+[
+  {
+    "lang": "Hindi",
+    "run": 1,
+    "status": "PASSED",
+    "passed": true,
+    "latency_sec": 3.73,
+    "reason": "None (Passed Rule 2)",
+    "explanation": "आशा जी, आपका लोन 04-11-2026 को बंद हो गया था, लेकिन ऑटोमेटिक डेबिट प्रक्रिया पहले ही शुरू हो चुकी थी, जिससे आपके बैंक खाते ...7810 से 4500 रुपये कट गए। क्या हम इस मामले की जाँच के लिए टिकट दर्ज करें?"
+  },
+  {
+    "lang": "Hindi",
+    "run": 2,
+    "status": "PASSED",
+    "passed": true,
+    "latency_sec": 2.29,
+    "reason": "None (Passed Rule 2)",
+    "explanation": "आशा जी, आपका लोन 04-11-2026 को बंद हो गया था, लेकिन बैंक की ऑटोमैटिक प्रक्रिया के कारण 05-11-2026 को आपके खाते ...7810 से 4500 रुपये की अतिरिक्त किस्त कट गई। इस बारे में हम Nimbus Finance के साथ टिकट दर्ज कर रहे हैं। क्या हम इसके लिए टिकट बना दें?"
+  },
+  {
+    "lang": "Hindi",
+    "run": 3,
+    "status": "PASSED",
+    "passed": true,
+    "latency_sec": 1.71,
+    "reason": "None (Passed Rule 2)",
+    "explanation": "आशा जी, आपका ऋण 04-11-2026 को बंद हो गया था, लेकिन बैंक की ऑटोमैटिक प्रक्रिया पहले ही शुरू हो चुकी थी, जिसके कारण खाता ...7810 से 4500 रुपये की अतिरिक्त राशि कट गई। क्या हम इस मामले की जाँच के लिए टिकट दर्ज करें?"
+  },
+  {
+    "lang": "Hindi",
+    "run": 4,
+    "status": "PASSED",
+    "passed": true,
+    "latency_sec": 1.28,
+    "reason": "None (Passed Rule 2)",
+    "explanation": "आशा जी, आपका लोन 04-11-2026 को बंद हो गया था, लेकिन बैंक की ऑटोमैटिक प्रक्रिया के कारण 4500 रुपये की राशि खाते ...7810 से 05-11-2026 को कट गई। यह अतिरिक्त राशि आपको वापस मिल जाएगी। क्या हम इस संबंध में सहायता टिकट बनाएं?"
+  },
+  {
+    "lang": "Hindi",
+    "run": 5,
+    "status": "PASSED",
+    "passed": true,
+    "latency_sec": 3.7,
+    "reason": "None (Passed Rule 2)",
+    "explanation": "आशा जी, आपका लोन 04-11-2026 को बंद हो गया था, लेकिन बैंक की ऑटोमैटिक प्रक्रिया के कारण 4500 रुपये की राशि आपके खाते ...7810 से 05-11-2026 को कट गई। यह अतिरिक्त राशि आपको वापस मिल जाएगी। क्या हम इस मामले की जांच के लिए टिकट बनाएं?"
+  },
+  {
+    "lang": "Hindi",
+    "run": 6,
+    "status": "PASSED",
+    "passed": true,
+    "latency_sec": 3.19,
+    "reason": "None (Passed Rule 2)",
+    "explanation": "आशा जी, आपका लोन 04-11-2026 को बंद हो गया था, लेकिन बैंक की ऑटोमैटिक प्रक्रिया के कारण 05-11-2026 को आपके खाते ...7810 से 4500 रुपये की अतिरिक्त किस्त कट गई। इस बारे में हम Nimbus Finance के साथ टिकट दर्ज कर रहे हैं। क्या हम सहायता के लिए टिकट बना दें?"
+  },
+  {
+    "lang": "Hindi",
+    "run": 7,
+    "status": "PASSED",
+    "passed": true,
+    "latency_sec": 3.6,
+    "reason": "None (Passed Rule 2)",
+    "explanation": "आशा जी, आपका लोन 04-11-2026 को बंद हो चुका था, लेकिन बैंक की ऑटोमैटिक प्रक्रिया पहले ही शुरू होने के कारण 05-11-2026 को आपके खाते ...7810 से 4500 रुपये की अतिरिक्त राशि कट गई। यह अतिरिक्त राशि आपको वापस दिलाने या टिकट दर्ज करने में हम आपकी सहायता कर सकते हैं। क्या हम इसके लिए टिकट बनाएं?"
+  },
+  {
+    "lang": "Hindi",
+    "run": 8,
+    "status": "PASSED",
+    "passed": true,
+    "latency_sec": 4.21,
+    "reason": "None (Passed Rule 2)",
+    "explanation": "आशा जी, आपका लोन 04-11-2026 को बंद हो गया था, लेकिन बैंक की ऑटोमैटिक प्रक्रिया के कारण 4500 रुपये की राशि आपके खाते ...7810 से 05-11-2026 को कट गई। यह अतिरिक्त राशि आपको वापस मिल जाएगी। क्या हम इस मामले की जांच के लिए टिकट बनाएं?"
+  },
+  {
+    "lang": "Hindi",
+    "run": 9,
+    "status": "PASSED",
+    "passed": true,
+    "latency_sec": 3.75,
+    "reason": "None (Passed Rule 2)",
+    "explanation": "आशा जी, आपका ऋण 04-11-2026 को बंद हो गया था, लेकिन बैंक की ऑटोमैटिक प्रक्रिया के कारण 05-11-2026 को आपके खाते ...7810 से 4500 रुपये की अतिरिक्त किस्त कट गई। क्या हम इस मामले की जांच के लिए टिकट बनाएं?"
+  },
+  {
+    "lang": "Hindi",
+    "run": 10,
+    "status": "PASSED",
+    "passed": true,
+    "latency_sec": 3.42,
+    "reason": "None (Passed Rule 2)",
+    "explanation": "आशा जी, आपका लोन 04-11-2026 को बंद हो गया था, लेकिन बैंक की ऑटोमैटिक प्रक्रिया के कारण 4500 रुपये की राशि आपके खाते ...7810 से 05-11-2026 को कट गई। यह अतिरिक्त राशि आपको वापस मिल जाएगी। क्या हम इस मामले की जांच के लिए टिकट बनाएं?"
+  },
+  {
+    "lang": "English",
+    "run": 1,
+    "status": "PASSED",
+    "passed": true,
+    "latency_sec": 2.93,
+    "reason": "None (Passed Rule 2)",
+    "explanation": "Your loan LN-ASHA-PERSONAL-150K was closed on 2026-11-04, but the automated debit of 4500 from account ...7810 on 2026-11-05 had already been dispatched. Shall we create a support ticket for this?"
+  },
+  {
+    "lang": "English",
+    "run": 2,
+    "status": "PASSED",
+    "passed": true,
+    "latency_sec": 4.19,
+    "reason": "None (Passed Rule 2)",
+    "explanation": "Your loan LN-ASHA-PERSONAL-150K was closed on 2026-11-04, but the automated bank presentation cycle for the amount of 4500 from your account ...7810 was already dispatched before the closure on 2026-11-05. Shall we create a support ticket to help resolve this?"
+  },
+  {
+    "lang": "English",
+    "run": 3,
+    "status": "PASSED",
+    "passed": true,
+    "latency_sec": 2.7,
+    "reason": "None (Passed Rule 2)",
+    "explanation": "Your loan LN-ASHA-PERSONAL-150K was closed on 2026-11-04, but the automated debit of 4500 from your account ...7810 was already dispatched for 2026-11-05 before the closure updated. Shall we request a refund ticket for this excess amount?"
+  },
+  {
+    "lang": "English",
+    "run": 4,
+    "status": "PASSED",
+    "passed": true,
+    "latency_sec": 6.01,
+    "reason": "None (Passed Rule 2)",
+    "explanation": "Your loan LN-ASHA-PERSONAL-150K was closed on 2026-11-04, but the automated debit of 4500 on your bank account ending in 7810 was already dispatched before closure. Would you like us to raise a ticket for this excess amount?"
+  },
+  {
+    "lang": "English",
+    "run": 5,
+    "status": "PASSED",
+    "passed": true,
+    "latency_sec": 1.75,
+    "reason": "None (Passed Rule 2)",
+    "explanation": "Your loan LN-ASHA-PERSONAL-150K was closed on 2026-11-04, but the automated debit of 4500 on your account ...7810 was already dispatched for 2026-11-05 before closure. Shall we raise a ticket to process your refund and get this sorted?"
+  }
+]

@@ -24,12 +24,35 @@ export const ReceiptCard: React.FC<ReceiptCardProps> = ({ receipt, onContinue })
 
       {/* Receipt Details Box */}
       <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200 space-y-2 text-xs">
-        <div className="flex justify-between items-center pb-2 border-b border-slate-200/80">
-          <span className="text-slate-500 font-medium">Reference ID</span>
-          <span className="font-mono font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200">
-            {receipt.reference_id}
-          </span>
-        </div>
+        {receipt.noc_reference && receipt.bureau_reference ? (
+          <div className="space-y-1.5 pb-2 border-b border-slate-200/80">
+            <div className="flex justify-between items-center text-[11px]">
+              <span className="text-slate-500 font-medium">1. Refund Ticket Ref:</span>
+              <span className="font-mono font-bold text-slate-900 bg-white px-1.5 py-0.5 rounded border border-slate-200">
+                {receipt.refund_reference || receipt.reference_id}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-[11px]">
+              <span className="text-slate-500 font-medium">2. NOC Dispatch Ref:</span>
+              <span className="font-mono font-bold text-emerald-700 bg-white px-1.5 py-0.5 rounded border border-slate-200">
+                {receipt.noc_reference}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-[11px]">
+              <span className="text-slate-500 font-medium">3. Bureau Check Ref:</span>
+              <span className="font-mono font-bold text-sky-700 bg-white px-1.5 py-0.5 rounded border border-slate-200">
+                {receipt.bureau_reference}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex justify-between items-center pb-2 border-b border-slate-200/80">
+            <span className="text-slate-500 font-medium">Reference ID</span>
+            <span className="font-mono font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200">
+              {receipt.reference_id}
+            </span>
+          </div>
+        )}
 
         {receipt.bank_account && (
           <div className="flex justify-between items-center text-[11px]">

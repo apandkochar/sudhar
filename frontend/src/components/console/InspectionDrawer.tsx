@@ -169,3 +169,4 @@ export const InspectionDrawer: React.FC<InspectionDrawerProps> = ({
     </div>
   );
 };
+

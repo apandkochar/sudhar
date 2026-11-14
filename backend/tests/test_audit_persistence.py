@@ -107,3 +107,4 @@ def test_audit_log_persistence_across_reconnect():
         cached = check_idempotency("CASE-AUDIT-TEST-001", "IDEMP-KEY-001", db_path=db_path)
         assert cached is not None
         assert cached["ref"] == "MND-SBI-4521"
+
