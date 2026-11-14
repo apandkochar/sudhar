@@ -76,3 +76,4 @@ export const ReceiptCard: React.FC<ReceiptCardProps> = ({ receipt, onContinue })
     </div>
   );
 };
+

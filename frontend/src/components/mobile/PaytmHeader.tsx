@@ -51,3 +51,4 @@ export const PaytmHeader: React.FC<PaytmHeaderProps> = ({
     </div>
   );
 };
+

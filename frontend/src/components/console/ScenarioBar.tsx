@@ -129,3 +129,4 @@ export const ScenarioBar: React.FC<ScenarioBarProps> = ({
     </div>
   );
 };
+

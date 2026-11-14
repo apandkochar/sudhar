@@ -36,3 +36,4 @@ export const LanguageChips: React.FC<LanguageChipsProps> = ({
     </div>
   );
 };
+

@@ -58,3 +58,4 @@ export const BeforeScreen: React.FC<BeforeScreenProps> = ({ onSwitchToSudhaar })
     </div>
   );
 };
+

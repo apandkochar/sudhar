@@ -79,3 +79,4 @@ export async function sendConsent(payload: {
 export async function resetDatabase(): Promise<void> {
   await fetch(`${API_BASE}/scenarios/reset`, { method: "POST" });
 }
+

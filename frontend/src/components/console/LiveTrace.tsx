@@ -175,3 +175,4 @@ export const LiveTrace: React.FC<LiveTraceProps> = ({
     </div>
   );
 };
+

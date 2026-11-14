@@ -64,3 +64,4 @@ export const Stepper: React.FC<StepperProps> = ({ currentStep = 3, isFailed = fa
     </div>
   );
 };
+

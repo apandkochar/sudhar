@@ -3,9 +3,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 import yaml
 
-from src.config import DATA_DIR, DEMO_MODE
+from src.config import DATA_DIR, DEMO_MODE, GEMINI_MODEL
 from src.context import build_context_packet, load_code_table, mask_pii
 from src.db import add_audit_entry, get_audit_trail, get_case, init_db, save_case
+from src.llm import draft_explanation_with_validator
 from src.rules import evaluate_rules
 from src.schemas import EventRequest
 
@@ -27,7 +28,6 @@ def load_templates(language: str) -> Dict[str, Any]:
 def load_persona(persona_id: str) -> Dict[str, Any]:
     persona_file = DATA_DIR / "personas" / f"{persona_id}.json"
     if not persona_file.exists():
-        # Fallback to rohit
         persona_file = DATA_DIR / "personas" / "rohit.json"
     with open(persona_file, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -35,7 +35,7 @@ def load_persona(persona_id: str) -> Dict[str, Any]:
 def process_event(event_req: EventRequest, db_path: Optional[Path] = None) -> Dict[str, Any]:
     """
     Deterministic event processing pipeline:
-    EVENT -> PLAYBOOK -> FACTS -> CODE LOOKUP -> RULES -> TEMPLATE/LLM -> VALIDATOR -> CONSENT PROPOSED -> SAVE
+    EVENT -> PLAYBOOK -> FACTS -> CODE LOOKUP -> RULES -> LLM/TEMPLATE -> VALIDATOR -> CONSENT PROPOSED -> SAVE
     """
     case_id = f"CASE-{event_req.event_id}"
     customer_id = event_req.customer_id
@@ -136,47 +136,73 @@ def process_event(event_req: EventRequest, db_path: Optional[Path] = None) -> Di
         db_path=db_path
     )
     
-    # 6. TEMPLATE RESOLUTION (Phase 2 uses approved templates; Phase 4 will call Gemini if LIVE)
+    # 6. LLM GATEWAY (Gemini with Schema Output OR Template Fallback)
+    context_packet = build_context_packet(
+        task="explain_and_propose",
+        language=language,
+        moment=moment,
+        facts=facts,
+        code_entry=code_entry,
+        allowed_actions=allowed_actions
+    )
+
+    llm_draft, val_details, source_mode = draft_explanation_with_validator(
+        context_packet=context_packet,
+        facts=facts,
+        allowed_actions=allowed_actions,
+        language=language
+    )
+
+    # Load templates for fallback and visual elements
     template_key = code_entry.get("template_key", "mandate_balance_failed")
     templates = load_templates(language)
-    template_item = templates.get(template_key)
-    
-    explanation = template_item["explanation"] if template_item else code_entry["customer_friendly_cause"]
-    action_label = template_item["action_label"] if template_item else proposed_action
-    visual_data = template_item.get("visual_data", {}) if template_item else {}
-    source_mode = "template"
-    
+    template_item = templates.get(template_key, {})
+    visual_data = template_item.get("visual_data", {})
+
+    if source_mode == "gemini" and llm_draft:
+        explanation = llm_draft["explanation"]
+        action_label = llm_draft.get("action_label", proposed_action)
+        is_ai_draft = True
+        draft_layer = "AI_GATEWAY"
+        draft_details = {
+            "source": "gemini",
+            "model": GEMINI_MODEL,
+            "language": language,
+            "confidence": llm_draft.get("confidence", 0.95),
+            "explanation": explanation
+        }
+    else:
+        explanation = template_item.get("explanation", code_entry["customer_friendly_cause"])
+        action_label = template_item.get("action_label", proposed_action)
+        is_ai_draft = False
+        draft_layer = "DETERMINISTIC_CODE"
+        draft_details = {
+            "source": "template",
+            "language": language,
+            "template_key": template_key,
+            "explanation": explanation,
+            "reason": val_details.get("reason", "Template resolution")
+        }
+
     add_audit_entry(
         case_id=case_id,
         stage="LLM_DRAFT",
-        layer="DETERMINISTIC_CODE", # In Phase 2 template mode
-        is_ai=False,
-        details={
-            "source": source_mode,
-            "language": language,
-            "template_key": template_key,
-            "explanation": explanation
-        },
+        layer=draft_layer,
+        is_ai=is_ai_draft,
+        details=draft_details,
         db_path=db_path
     )
-    
-    # 7. VALIDATOR
-    # Ensure proposed action is in allowed actions
-    is_valid = proposed_action in allowed_actions
+
+    # 7. VALIDATOR STAGE
     add_audit_entry(
         case_id=case_id,
         stage="VALIDATOR",
         layer="SAFETY_GATE",
         is_ai=False,
-        details={
-            "passed": is_valid,
-            "allowed_actions_checked": allowed_actions,
-            "proposed_action_checked": proposed_action,
-            "banned_phrases_found": []
-        },
+        details=val_details,
         db_path=db_path
     )
-    
+
     # 8. CONSENT PROPOSED
     add_audit_entry(
         case_id=case_id,
@@ -190,7 +216,7 @@ def process_event(event_req: EventRequest, db_path: Optional[Path] = None) -> Di
         },
         db_path=db_path
     )
-    
+
     # 9. Save Case to SQLite
     case_record = {
         "case_id": case_id,
@@ -210,10 +236,9 @@ def process_event(event_req: EventRequest, db_path: Optional[Path] = None) -> Di
         "source_mode": source_mode,
         "receipt": None
     }
-    
+
     save_case(case_record, db_path=db_path)
-    
+
     # 10. Fetch audit trail & return complete Case
     case_record["audit_trail"] = get_audit_trail(case_id, db_path=db_path)
     return case_record
-

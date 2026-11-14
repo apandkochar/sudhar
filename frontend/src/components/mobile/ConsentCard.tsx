@@ -101,3 +101,4 @@ export const ConsentCard: React.FC<ConsentCardProps> = ({
     </div>
   );
 };
+
