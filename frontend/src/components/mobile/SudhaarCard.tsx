@@ -204,7 +204,7 @@ export const SudhaarCard: React.FC<SudhaarCardProps> = ({
                 <span>EMI Debited</span>
               </span>
               <span className="text-[9px] bg-rose-100 text-rose-700 px-1 py-0.2 rounded font-mono font-bold">
-                CLEARING ERROR
+                Debited after closure
               </span>
             </div>
             <p className="text-xs font-bold text-rose-700 mt-1">

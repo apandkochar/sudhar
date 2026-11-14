@@ -424,6 +424,12 @@ export default function Home() {
   // Requirement 4: Show "Failed – action needed" before consent and "Registered" after; never internal states like PROPOSED
   const getCustomerFriendlyStatus = () => {
     if (cardStep === "RECEIPT" || caseData?.status === "EXECUTED") {
+      if (activePersonaId === "asha") {
+        return {
+          label: "3 requests raised",
+          colorClass: "bg-emerald-50 text-emerald-700 border-emerald-200"
+        };
+      }
       return {
         label: "Registered",
         colorClass: "bg-emerald-50 text-emerald-700 border-emerald-200"

@@ -33,14 +33,16 @@ export const ReceiptCard: React.FC<ReceiptCardProps> = ({ receipt, onContinue })
               </span>
             </div>
             <div className="flex justify-between items-center text-[11px]">
-              <span className="text-slate-500 font-medium">2. NOC Dispatch Ref:</span>
+              <span className="text-slate-500 font-medium">2. NOC request ref:</span>
               <span className="font-mono font-bold text-emerald-700 bg-white px-1.5 py-0.5 rounded border border-slate-200">
                 {receipt.noc_reference}
               </span>
             </div>
-            <div className="flex justify-between items-center text-[11px]">
-              <span className="text-slate-500 font-medium">3. Bureau Check Ref:</span>
-              <span className="font-mono font-bold text-sky-700 bg-white px-1.5 py-0.5 rounded border border-slate-200">
+            <div className="flex justify-between items-center text-[11px] gap-1">
+              <span className="text-slate-500 font-medium truncate">
+                3. Credit-report check · reminder set for {receipt.bureau_reminder_date || "15 Nov 2026"}:
+              </span>
+              <span className="font-mono font-bold text-sky-700 bg-white px-1.5 py-0.5 rounded border border-slate-200 flex-shrink-0">
                 {receipt.bureau_reference}
               </span>
             </div>

@@ -59,6 +59,7 @@ def simulate_tool_execution(
             "refund_sla": "3-5 business days to ICICI Bank ending 7810",
             "noc_status": "QUEUED_FOR_DISPATCH (within 24 hours)",
             "bureau_status": "SCHEDULED (next lender reporting cycle)",
+            "bureau_reminder_date": "15 Nov 2026",
             "message": "3 actions authorized: Refund ticket raised, NOC queued, and bureau check scheduled",
             "executed_at": now_iso
         }
