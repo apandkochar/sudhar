@@ -80,3 +80,41 @@ export async function resetDatabase(): Promise<void> {
   await fetch(`${API_BASE}/scenarios/reset`, { method: "POST" });
 }
 
+export interface AuditStats {
+  status: string;
+  persistent: boolean;
+  storage: string;
+  db_path: string;
+  integrity: string;
+  total_cases: number;
+  total_audit_entries: number;
+  executed_rescues: number;
+}
+
+export async function fetchAuditStats(): Promise<AuditStats> {
+  const res = await fetch(`${API_BASE}/audit/stats`);
+  if (!res.ok) {
+    throw new Error("Failed to fetch audit stats");
+  }
+  return res.json();
+}
+
+export interface CaseSummary {
+  case_id: string;
+  customer_id: string;
+  persona_id: string;
+  status: string;
+  moment: string;
+  source_mode: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchRecentCases(): Promise<CaseSummary[]> {
+  const res = await fetch(`${API_BASE}/cases`);
+  if (!res.ok) {
+    throw new Error("Failed to fetch recent cases");
+  }
+  return res.json();
+}
+

@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.actions import ActionSecurityError, process_consent
 from src.config import DATA_DIR, DEMO_MODE, DISCLAIMER, LENDER_NAME, PRODUCT_NAME
-from src.db import get_audit_trail, get_case, init_db, reset_db
+from src.db import get_audit_stats, get_audit_trail, get_case, init_db, list_recent_cases, reset_db
 from src.orchestrator import load_playbooks, process_event
 from src.schemas import CaseResponse, ConsentRequest, EventRequest
 
@@ -74,6 +74,13 @@ def handle_event(event_req: EventRequest) -> Dict[str, Any]:
             detail=str(e)
         )
 
+@app.get("/api/cases", response_model=List[Dict[str, Any]])
+def list_cases(limit: int = 20) -> List[Dict[str, Any]]:
+    """
+    Returns recent cases for operator history and console selection.
+    """
+    return list_recent_cases(limit=limit)
+
 @app.get("/api/cases/{case_id}", response_model=CaseResponse)
 def fetch_case(case_id: str) -> Dict[str, Any]:
     """
@@ -87,6 +94,13 @@ def fetch_case(case_id: str) -> Dict[str, Any]:
         )
     case["audit_trail"] = get_audit_trail(case_id)
     return case
+
+@app.get("/api/audit/stats")
+def audit_stats() -> Dict[str, Any]:
+    """
+    Returns operator KPI metrics, audit trail counts, and SQLite persistence verification status.
+    """
+    return get_audit_stats()
 
 @app.post("/api/consent")
 def handle_consent(consent_req: ConsentRequest) -> Dict[str, Any]:

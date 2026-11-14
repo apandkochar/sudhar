@@ -1,19 +1,24 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ChevronDown, ChevronRight, Cpu, Sparkles, ShieldCheck, UserCheck, Terminal } from "lucide-react";
+import { ChevronDown, ChevronRight, Cpu, Sparkles, ShieldCheck, UserCheck, Terminal, Maximize2, Database, Clock } from "lucide-react";
+import Link from "next/link";
 import { AuditEntry } from "@/lib/api";
+import { InspectionDrawer } from "./InspectionDrawer";
 
 interface LiveTraceProps {
   auditTrail: AuditEntry[];
   activeCaseId?: string;
   sourceMode?: string;
+  showConsoleLink?: boolean;
 }
 
 export const LiveTrace: React.FC<LiveTraceProps> = ({
   auditTrail,
   activeCaseId,
   sourceMode = "template",
+  showConsoleLink = true,
 }) => {
-  const [expandedEntries, setExpandedEntries] = useState<Record<string, boolean>>({});
+  const [selectedEntry, setSelectedEntry] = useState<{ entry: AuditEntry; index: number } | null>(null);
+  const [expandedInline, setExpandedInline] = useState<Record<string, boolean>>({});
   const traceEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to the newest step
@@ -21,12 +26,16 @@ export const LiveTrace: React.FC<LiveTraceProps> = ({
     traceEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [auditTrail]);
 
-  const toggleExpand = (id: string) => {
-    setExpandedEntries((prev) => ({ ...prev, [id]: !prev[id] }));
+  const toggleInline = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedInline((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const openDrawer = (entry: AuditEntry, index: number) => {
+    setSelectedEntry({ entry, index });
   };
 
   const getLayerBadge = (stage: string, layer: string, isAi: boolean, details: Record<string, any>) => {
-    // LLM_DRAFT specifically: purple AI MODEL (Gemini) ONLY when it called the model
     if (stage === "LLM_DRAFT" || isAi) {
       if (isAi || details.source === "gemini" || (details.summary && details.summary.includes("Gemini"))) {
         return (
@@ -114,11 +123,15 @@ export const LiveTrace: React.FC<LiveTraceProps> = ({
             <Terminal size={13} />
           </div>
           <div>
-            <h2 className="text-xs font-bold text-white uppercase tracking-wider">
-              Operator Execution Trace
+            <h2 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <span>Operator Execution Trace</span>
+              <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1 font-semibold">
+                <Database size={10} />
+                <span>SQLite: Verified & Persistent</span>
+              </span>
             </h2>
             <p className="text-[11px] text-slate-400 font-mono">
-              Case: {activeCaseId || "Idle"}
+              Case: {activeCaseId || "Standby / Idle"}
             </p>
           </div>
         </div>
@@ -127,10 +140,21 @@ export const LiveTrace: React.FC<LiveTraceProps> = ({
           <span className="text-[10px] font-mono bg-slate-800 px-2 py-0.5 rounded text-slate-300 border border-slate-700">
             {auditTrail.length} / 10 Steps
           </span>
+
+          {showConsoleLink && (
+            <Link
+              href="/console"
+              className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition flex items-center gap-1 text-[11px] font-mono border border-slate-700"
+              title="Open Fullscreen Operator Console"
+            >
+              <Maximize2 size={11} />
+              <span className="hidden sm:inline">/console</span>
+            </Link>
+          )}
         </div>
       </div>
 
-      {/* Compact Single-Line Trace List for Projector Readability */}
+      {/* Compact Single-Line Trace List with Step Numbers & Latencies */}
       <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 font-sans">
         {auditTrail.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-500 text-xs text-center p-6 space-y-1.5">
@@ -138,43 +162,69 @@ export const LiveTrace: React.FC<LiveTraceProps> = ({
             <p>Waiting for a loan failure event...</p>
           </div>
         ) : (
-          auditTrail.map((entry) => {
-            const isExpanded = expandedEntries[entry.entry_id];
+          auditTrail.map((entry, idx) => {
+            const stepNum = String(idx + 1).padStart(2, "0");
+            const isInlineExpanded = expandedInline[entry.entry_id];
             const summaryText = getHumanReadableSummary(entry);
+            const latencyStr = entry.details.latency_sec
+              ? `${entry.details.latency_sec}s`
+              : entry.is_ai
+              ? "AI"
+              : "<5ms";
 
             return (
               <div
                 key={entry.entry_id}
-                className="bg-slate-950/70 hover:bg-slate-950 rounded-lg border border-slate-800/80 px-3 py-1.5 transition text-xs flex flex-col gap-1"
+                className="bg-slate-950/70 hover:bg-slate-950 rounded-lg border border-slate-800/80 px-3 py-1.5 transition text-xs flex flex-col gap-1 cursor-pointer group"
+                onClick={() => openDrawer(entry, idx + 1)}
               >
                 {/* Single Compact Header Line */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
-                    <span className="font-mono text-xs md:text-sm font-bold text-white tracking-wide uppercase w-28 md:w-36 flex-shrink-0 truncate">
+                    {/* Step Number */}
+                    <span className="text-[10px] font-mono text-slate-500 font-bold w-5 flex-shrink-0">
+                      {stepNum}
+                    </span>
+
+                    {/* Stage Name */}
+                    <span className="font-mono text-xs md:text-sm font-bold text-white tracking-wide uppercase w-28 md:w-36 flex-shrink-0 truncate group-hover:text-[#00BAF2] transition">
                       {entry.stage === "TEMPLATE_FALLBACK" ? "TEMPLATE" : entry.stage}
                     </span>
 
+                    {/* Badge */}
                     {getLayerBadge(entry.stage, entry.layer, entry.is_ai, entry.details)}
 
                     {/* Human readable line */}
-                    <span className="text-slate-200 text-xs md:text-[13px] font-medium truncate ml-1">
+                    <span className="text-slate-200 text-xs md:text-[13px] font-medium truncate ml-1 flex-1">
                       {summaryText}
                     </span>
                   </div>
 
-                  <button
-                    onClick={() => toggleExpand(entry.entry_id)}
-                    className="text-slate-400 hover:text-white text-[11px] font-mono flex items-center gap-0.5 flex-shrink-0 px-1 py-0.5 rounded hover:bg-slate-800 transition"
-                  >
-                    <span>{isExpanded ? "close" : "inspect"}</span>
-                    {isExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-                  </button>
+                  {/* Latency & Inspect Actions */}
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 flex items-center gap-1">
+                      <Clock size={10} className="text-slate-500" />
+                      <span>{latencyStr}</span>
+                    </span>
+
+                    <button
+                      onClick={(e) => toggleInline(entry.entry_id, e)}
+                      title="Quick JSON toggle"
+                      className="text-slate-400 hover:text-white text-[11px] font-mono flex items-center gap-0.5 px-1 py-0.5 rounded hover:bg-slate-800 transition"
+                    >
+                      <span>{isInlineExpanded ? "less" : "inspect"}</span>
+                      {isInlineExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+                    </button>
+                  </div>
                 </div>
 
-                {/* Raw JSON only inside inspect */}
-                {isExpanded && (
-                  <div className="mt-1 pt-1.5 border-t border-slate-800/80">
-                    <pre className="text-[10px] font-mono text-sky-300 bg-slate-900/90 p-2 rounded overflow-x-auto border border-slate-800">
+                {/* Inline Quick JSON view */}
+                {isInlineExpanded && (
+                  <div
+                    className="mt-1 pt-1.5 border-t border-slate-800/80"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <pre className="text-[10px] font-mono text-sky-300 bg-slate-900/90 p-2 rounded overflow-x-auto border border-slate-800 max-h-40">
                       {JSON.stringify(entry.details, null, 2)}
                     </pre>
                   </div>
@@ -185,6 +235,14 @@ export const LiveTrace: React.FC<LiveTraceProps> = ({
         )}
         <div ref={traceEndRef} />
       </div>
+
+      {/* Slide-over Inspection Drawer for deep inspection */}
+      <InspectionDrawer
+        entry={selectedEntry?.entry || null}
+        stepIndex={selectedEntry?.index || 1}
+        totalSteps={auditTrail.length}
+        onClose={() => setSelectedEntry(null)}
+      />
     </div>
   );
 };

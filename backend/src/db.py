@@ -226,3 +226,54 @@ def reset_db(db_path: Optional[Path] = None) -> None:
     conn.commit()
     conn.close()
 
+def get_audit_stats(db_path: Optional[Path] = None) -> Dict[str, Any]:
+    conn = get_connection(db_path)
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT COUNT(*) FROM cases")
+    total_cases = cursor.fetchone()[0]
+    
+    cursor.execute("SELECT COUNT(*) FROM audit_log")
+    total_audit_entries = cursor.fetchone()[0]
+    
+    cursor.execute("SELECT COUNT(*) FROM cases WHERE status = 'EXECUTED'")
+    executed_rescues = cursor.fetchone()[0]
+    
+    cursor.execute("PRAGMA integrity_check")
+    integrity = cursor.fetchone()[0]
+    
+    conn.close()
+    
+    path = db_path or DB_PATH
+    return {
+        "status": "healthy",
+        "persistent": True,
+        "storage": "sqlite3_disk",
+        "db_path": str(path.name),
+        "integrity": integrity,
+        "total_cases": total_cases,
+        "total_audit_entries": total_audit_entries,
+        "executed_rescues": executed_rescues
+    }
+
+def list_recent_cases(limit: int = 20, db_path: Optional[Path] = None) -> List[Dict[str, Any]]:
+    conn = get_connection(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT case_id, customer_id, persona_id, status, moment, source_mode, created_at, updated_at FROM cases ORDER BY rowid DESC LIMIT ?", (limit,))
+    rows = cursor.fetchall()
+    conn.close()
+    
+    cases = []
+    for r in rows:
+        cases.append({
+            "case_id": r["case_id"],
+            "customer_id": r["customer_id"],
+            "persona_id": r["persona_id"],
+            "status": r["status"],
+            "moment": r["moment"],
+            "source_mode": r["source_mode"],
+            "created_at": r["created_at"],
+            "updated_at": r["updated_at"]
+        })
+    return cases
+

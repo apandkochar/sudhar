@@ -1,5 +1,6 @@
 import React from "react";
-import { Play, RotateCcw, Eye, ShieldAlert, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { Play, RotateCcw, Eye, ShieldAlert, Sparkles, Terminal } from "lucide-react";
 
 interface ScenarioBarProps {
   onSelectPersona: (personaId: string) => void;
@@ -110,6 +111,16 @@ export const ScenarioBar: React.FC<ScenarioBarProps> = ({
           <span className="text-slate-400">Rescues:</span>
           <span className="font-bold text-emerald-400">{rescuesCount}</span>
         </div>
+
+        {/* Operator Console Link */}
+        <Link
+          href="/console"
+          className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl transition border border-slate-700 text-[11px] font-mono flex items-center gap-1"
+          title="Open Dedicated Fullscreen Operator Console"
+        >
+          <Terminal size={12} className="text-[#00BAF2]" />
+          <span className="hidden sm:inline">Console</span>
+        </Link>
 
         {/* Reset button */}
         <button
