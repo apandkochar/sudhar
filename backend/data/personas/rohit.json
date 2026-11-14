@@ -1,0 +1,52 @@
+{
+  "persona_id": "rohit",
+  "name": "Rohit Kamble",
+  "city": "Pune",
+  "occupation": "Delivery Rider",
+  "preferred_language": "mr",
+  "customer_id": "CUST-ROHIT-401",
+  "pan_masked": "XXXXX1234F",
+  "mobile_masked": "+91-98XXXX4512",
+  "loan_details": {
+    "loan_id": "LN-ROHIT-50K",
+    "lender": "Nimbus Finance",
+    "loan_amount": 50000,
+    "tenure_months": 12,
+    "emi_amount": 4650,
+    "interest_rate_pct": 14.5,
+    "stage": "MANDATE_SETUP"
+  },
+  "bank_accounts": [
+    {
+      "account_id": "ACC-HDFC-9012",
+      "bank_name": "HDFC Bank",
+      "ifsc": "HDFC0001234",
+      "account_last4": "9012",
+      "is_primary": true,
+      "balance_status": "INSUFFICIENT",
+      "approx_balance": 85
+    },
+    {
+      "account_id": "ACC-SBI-4521",
+      "bank_name": "State Bank of India (SBI)",
+      "ifsc": "SBIN0005678",
+      "account_last4": "4521",
+      "is_primary": false,
+      "balance_status": "SUFFICIENT",
+      "approx_balance": 14200
+    }
+  ],
+  "trigger_event": {
+    "event_id": "EVT-ROHIT-MAN-01",
+    "event_type": "MANDATE_FAILED",
+    "timestamp": "2026-11-14T10:15:30+05:30",
+    "customer_id": "CUST-ROHIT-401",
+    "payload": {
+      "code": "AP15",
+      "attempt": 1,
+      "account_id": "ACC-HDFC-9012",
+      "bank_account_masked": "HDFC Bank ending 9012",
+      "loan_id": "LN-ROHIT-50K"
+    }
+  }
+}

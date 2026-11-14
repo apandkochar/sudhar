@@ -1,0 +1,51 @@
+id: "PB-MANDATE-RETRY-01"
+name: "e-Mandate Balance Insufficient Rescue"
+moment: "MANDATE_FAILED"
+code: "AP15"
+persona: "rohit"
+description: "Handles NPCI AP15 error when primary account lacks balance for initial mandate setup by recommending secondary verified account."
+
+trigger:
+  event_type: "MANDATE_FAILED"
+  match_code: "AP15"
+
+deterministic_rules:
+  max_attempts_allowed: 3
+  require_alternative_account: true
+  min_balance_status: "SUFFICIENT"
+  allowed_actions:
+    - "retry_mandate"
+    - "book_callback"
+
+context_facts_mapping:
+  primary_bank: "facts.bank_accounts[0].bank_name"
+  primary_account_last4: "facts.bank_accounts[0].account_last4"
+  secondary_bank: "facts.bank_accounts[1].bank_name"
+  secondary_account_last4: "facts.bank_accounts[1].account_last4"
+  loan_id: "facts.loan_id"
+  emi_amount: "facts.emi_amount"
+
+consent_spec:
+  action: "retry_mandate"
+  target_account_param: "secondary_account_id"
+  what_it_does:
+    en: "Set up auto-debit on your State Bank of India account ending 4521 for monthly EMI."
+    hi: "मासिक EMI के लिए आपके स्टेट बैंक ऑफ इंडिया (SBI) खाते (अंतिम अंक 4521) पर ऑटो-डेबिट सेट करेगा।"
+    mr: "मासिक EMI साठी तुमच्या स्टेट बँक ऑफ इंडिया (SBI) खात्यावर (शेवटचे अंक 4521) ऑटो-डेबिट सुरू करेल."
+  what_it_does_not_do:
+    en: "Will not deduct any money right now. No setup fee is charged."
+    hi: "अभी आपके खाते से कोई पैसा नहीं कटेगा। कोई अतिरिक्त शुल्क नहीं लगेगा।"
+    mr: "आत्ता तुमच्या खात्यातून कोणतेही पैसे कापले जाणार नाहीत. कोणतीही अतिरिक्त फी नाही."
+  how_to_undo:
+    en: "You can modify or cancel this mandate anytime in the Paytm app or via your netbanking."
+    hi: "आप इसे कभी भी पेटीएम ऐप या अपनी नेटबैंकिंग से बदल या रद्द कर सकते हैं।"
+    mr: "तुम्ही हे ई-मँडेट कधीही पेटीएम ॲप किंवा नेटबँकिंगद्वारे बदलू किंवा रद्द करू शकता."
+
+receipt_spec:
+  status: "SUCCESS"
+  reference_prefix: "MND-SBI-"
+  timeline:
+    en: "Mandate activated immediately. First EMI due on 5th next month."
+    hi: "ई-मैंडेट तुरंत सक्रिय हो गया। पहली EMI अगले महीने की 5 तारीख को देय है।"
+    mr: "ई-मँडेट तात्काळ सक्रिय झाले आहे. पहिली EMI पुढील महिन्याच्या 5 तारखेला देय असेल."
+

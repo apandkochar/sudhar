@@ -1,0 +1,47 @@
+{
+  "persona_id": "sunita",
+  "name": "Sunita Deshmukh",
+  "city": "Nashik",
+  "occupation": "High School Teacher",
+  "preferred_language": "mr",
+  "customer_id": "CUST-SUNITA-103",
+  "pan_masked": "XXXXX9102L",
+  "mobile_masked": "+91-98XXXX3210",
+  "loan_application": {
+    "application_id": "APP-SUNITA-75K",
+    "lender": "Nimbus Finance",
+    "loan_amount": 75000,
+    "tenure_months": 18,
+    "stage": "VIDEO_KYC"
+  },
+  "kyc_progress": {
+    "total_steps": 3,
+    "current_step": 2,
+    "step_history": [
+      { "step": 1, "name": "Physical PAN verification", "status": "COMPLETED" },
+      { "step": 2, "name": "Live agent face match & liveness", "status": "DISCONNECTED" },
+      { "step": 3, "name": "Final terms declaration", "status": "PENDING" }
+    ],
+    "resume_window_expiry": "2026-11-17T18:00:00+05:30"
+  },
+  "facts": {
+    "application_id": "APP-SUNITA-75K",
+    "customer_name": "Sunita Deshmukh",
+    "completed_step": "Physical PAN verification",
+    "dropped_step": "Live face match",
+    "mobile_masked": "+91-98XXXX3210",
+    "resume_window_expiry": "2026-11-17T18:00:00+05:30"
+  },
+  "trigger_event": {
+    "event_id": "EVT-SUNITA-KYC-01",
+    "event_type": "VKYC_DROPPED",
+    "timestamp": "2026-11-14T11:45:00+05:30",
+    "customer_id": "CUST-SUNITA-103",
+    "payload": {
+      "code": "VKYC_NET_DROP",
+      "application_id": "APP-SUNITA-75K",
+      "attempt": 1,
+      "disconnect_reason": "SOCKET_TIMEOUT"
+    }
+  }
+}

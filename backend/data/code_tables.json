@@ -1,0 +1,72 @@
+{
+  "codes": {
+    "AP15": {
+      "code": "AP15",
+      "source": "NPCI_OFFICIAL",
+      "category": "MANDATE",
+      "name": "Required balance not maintained",
+      "description": "Mandate registration failed: required balance not maintained in the customer bank account for initial validation debit or mandate setup.",
+      "customer_friendly_cause": "Your bank account did not have the minimum balance required for mandate registration verification.",
+      "recommended_fix": "Retry registration using another linked bank account with sufficient balance.",
+      "allowed_actions": ["retry_mandate", "book_callback"],
+      "template_key": "mandate_balance_failed"
+    },
+    "AP10": {
+      "code": "AP10",
+      "source": "NPCI_OFFICIAL",
+      "category": "MANDATE",
+      "name": "Account closed / Invalid Account",
+      "description": "Mandate registration failed: target bank account is closed, dormant, or invalid according to destination bank records.",
+      "customer_friendly_cause": "The selected bank account is closed, dormant, or invalid.",
+      "recommended_fix": "Select an active primary savings account to complete mandate registration.",
+      "allowed_actions": ["retry_mandate", "book_callback"],
+      "template_key": "mandate_account_invalid"
+    },
+    "LMS_POST_CLOSURE_DEBIT": {
+      "code": "LMS_POST_CLOSURE_DEBIT",
+      "source": "MOCK",
+      "category": "LMS",
+      "name": "EMI debited after loan closure",
+      "description": "Automated NACH presentation cycle triggered after confirmed loan foreclosure or full repayment date.",
+      "customer_friendly_cause": "Your loan was closed before the debit date, but the automated bank presentation cycle had already been dispatched.",
+      "recommended_fix": "Initiate automated refund ticket, issue No-Dues Certificate (NOC), and log credit bureau correction request.",
+      "allowed_actions": [
+        "create_ticket",
+        "request_noc",
+        "request_bureau_correction",
+        "set_reminder",
+        "book_callback"
+      ],
+      "template_key": "post_closure_debit"
+    },
+    "VKYC_NET_DROP": {
+      "code": "VKYC_NET_DROP",
+      "source": "MOCK",
+      "category": "KYC",
+      "name": "Video KYC session disconnected",
+      "description": "Video KYC connection dropped due to network instability or browser disconnect before verification checklist completion.",
+      "customer_friendly_cause": "Your video KYC call was interrupted due to network connectivity issues before verification completed.",
+      "recommended_fix": "Send an instant resume link valid for 72 hours with pre-call checklist.",
+      "allowed_actions": [
+        "send_vkyc_resume_link",
+        "book_callback"
+      ],
+      "template_key": "vkyc_dropped"
+    },
+    "LMS_REJECT_OBLIGATION": {
+      "code": "LMS_REJECT_OBLIGATION",
+      "source": "MOCK",
+      "category": "LMS",
+      "name": "High existing debt obligations",
+      "description": "Application paused due to existing active loan obligations exceeding eligible debt-to-income threshold.",
+      "customer_friendly_cause": "Current active EMI commitments exceed eligible lending limits at this time.",
+      "recommended_fix": "Schedule a reminder after 90 days to re-check eligibility without affecting credit score.",
+      "allowed_actions": [
+        "set_reminder",
+        "book_callback"
+      ],
+      "template_key": "rejection_obligations"
+    }
+  }
+}
+

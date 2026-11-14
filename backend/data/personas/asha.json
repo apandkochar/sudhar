@@ -1,0 +1,70 @@
+{
+  "persona_id": "asha",
+  "name": "Asha Sharma",
+  "city": "Mumbai",
+  "occupation": "Senior Accountant",
+  "preferred_language": "hi",
+  "customer_id": "CUST-ASHA-802",
+  "pan_masked": "XXXXX5678K",
+  "mobile_masked": "+91-97XXXX8910",
+  "loan_details": {
+    "loan_id": "LN-ASHA-150K",
+    "lender": "Nimbus Finance",
+    "original_principal": 150000,
+    "total_emis": 24,
+    "paid_emis": 24,
+    "closure_date": "2026-11-04",
+    "status": "CLOSED",
+    "noc_status": "REQUESTED"
+  },
+  "bank_account": {
+    "account_id": "ACC-ICICI-7810",
+    "bank_name": "ICICI Bank",
+    "ifsc": "ICIC0000456",
+    "account_last4": "7810"
+  },
+  "ledger_history": [
+    {
+      "date": "2026-10-05",
+      "type": "REGULAR_EMI",
+      "amount": 7250,
+      "status": "PAID"
+    },
+    {
+      "date": "2026-11-04",
+      "type": "FORECLOSURE_SETTLEMENT",
+      "amount": 14500,
+      "status": "SETTLED_IN_FULL",
+      "reference": "CLOSURE-NIMBUS-9901"
+    },
+    {
+      "date": "2026-11-05",
+      "type": "ERRONEOUS_DEBIT",
+      "amount": 4500,
+      "status": "UNAUTHORIZED_CLEARING",
+      "reference": "NACH-ICICI-ERR-4412"
+    }
+  ],
+  "facts": {
+    "loan_id": "LN-ASHA-150K",
+    "closure_date": "2026-11-04",
+    "debit_date": "2026-11-05",
+    "debit_amount": 4500,
+    "bank_name": "ICICI Bank",
+    "account_last4": "7810",
+    "excess_amount": 4500
+  },
+  "trigger_event": {
+    "event_id": "EVT-ASHA-LMS-01",
+    "event_type": "EMI_DEBITED_AFTER_CLOSURE",
+    "timestamp": "2026-11-05T08:30:15+05:30",
+    "customer_id": "CUST-ASHA-802",
+    "payload": {
+      "code": "LMS_POST_CLOSURE_DEBIT",
+      "loan_id": "LN-ASHA-150K",
+      "debit_amount": 4500,
+      "debit_date": "2026-11-05",
+      "bank_account_masked": "ICICI Bank ending 7810"
+    }
+  }
+}

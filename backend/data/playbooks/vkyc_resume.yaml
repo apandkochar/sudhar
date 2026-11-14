@@ -1,0 +1,49 @@
+id: "PB-VKYC-RESUME-01"
+name: "Video KYC Interruption Rescue"
+moment: "VKYC_DROPPED"
+code: "VKYC_NET_DROP"
+persona: "sunita"
+description: "Detects network disconnect during video KYC, verifies resume validity window, presents environment checklist, and sends direct resume link with consent."
+
+trigger:
+  event_type: "VKYC_DROPPED"
+  match_code: "VKYC_NET_DROP"
+
+deterministic_rules:
+  max_attempts_allowed: 3
+  resume_window_hours: 72
+  allowed_actions:
+    - "send_vkyc_resume_link"
+    - "book_callback"
+
+context_facts_mapping:
+  application_id: "facts.application_id"
+  completed_step: "facts.completed_step"
+  dropped_step: "facts.dropped_step"
+  mobile_masked: "facts.mobile_masked"
+  expiry_window: "facts.resume_window_expiry"
+
+consent_spec:
+  action: "send_vkyc_resume_link"
+  target_param: "mobile_masked"
+  what_it_does:
+    en: "Send an instant, secure video KYC resume link to mobile ending 3210 valid for 72 hours."
+    hi: "आपके मोबाइल (अंतिम अंक 3210) पर 72 घंटे के लिए वैध वीडियो केवाईसी का सुरक्षित लिंक भेजेगा।"
+    mr: "तुमच्या नोंदणीकृत मोबाईलवर (शेवटचे अंक 3210) 72 तासांसाठी वैध असलेली सुरक्षित व्हिडिओ केवायसी लिंक पाठवेल."
+  what_it_does_not_do:
+    en: "Does not require re-uploading documents already verified."
+    hi: "सत्यापित हो चुके दस्तावेजों को दोबारा अपलोड करने की आवश्यकता नहीं होगी।"
+    mr: "आधीच पडताळणी झालेले कागदपत्रे पुन्हा अपलोड करण्याची गरज नाही."
+  how_to_undo:
+    en: "You can also resume directly from the loan dashboard at any time."
+    hi: "आप लोन डैशबोर्ड से भी इसे किसी भी समय दोबारा शुरू कर सकते हैं।"
+    mr: "तुम्ही कर्ज डॅशबोर्डवरून कधीही थेट प्रक्रिया पुन्हा सुरू करू शकता."
+
+receipt_spec:
+  status: "SUCCESS"
+  reference_prefix: "VKYC-SMS-"
+  timeline:
+    en: "SMS and WhatsApp link dispatched. Link active until Nov 17, 2026."
+    hi: "एसएमएस और व्हाट्सएप लिंक भेजा गया। लिंक 17 नवंबर 2026 तक सक्रिय रहेगा।"
+    mr: "एसएमएस आणि व्हॉट्सॲपवर लिंक पाठवली आहे. लिंक 17 नोव्हेंबर 2026 पर्यंत सुरू राहील."
+

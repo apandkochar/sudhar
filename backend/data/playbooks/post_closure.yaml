@@ -1,0 +1,53 @@
+id: "PB-POST-CLOSURE-01"
+name: "Post-Closure Erroneous EMI Debit Rescue"
+moment: "EMI_DEBITED_AFTER_CLOSURE"
+code: "LMS_POST_CLOSURE_DEBIT"
+persona: "asha"
+description: "Identifies automated debit presented after verified loan closure date, proposes immediate refund ticket, NOC dispatch, and bureau status update."
+
+trigger:
+  event_type: "EMI_DEBITED_AFTER_CLOSURE"
+  match_code: "LMS_POST_CLOSURE_DEBIT"
+
+deterministic_rules:
+  require_closure_date_before_debit: true
+  match_exact_debit_amount: true
+  allowed_actions:
+    - "create_ticket"
+    - "request_noc"
+    - "request_bureau_correction"
+    - "set_reminder"
+    - "book_callback"
+
+context_facts_mapping:
+  loan_id: "facts.loan_id"
+  closure_date: "facts.closure_date"
+  debit_date: "facts.debit_date"
+  debit_amount: "facts.debit_amount"
+  bank_name: "facts.bank_name"
+  account_last4: "facts.account_last4"
+
+consent_spec:
+  action: "create_ticket"
+  ticket_type: "REFUND_AND_NOC"
+  what_it_does:
+    en: "Initiate immediate refund of ₹4,500 to ICICI account ending 7810, trigger official No-Dues Certificate (NOC), and request credit bureau update."
+    hi: "ICICI खाते (अंतिम अंक 7810) में ₹4,500 की त्वरित रिफंड प्रक्रिया शुरू करेगा, आधिकारिक नो-ड्यूज सर्टिफिकेट (NOC) भेजेगा और सिबिल/क्रेडिट ब्यूरो को अपडेट करेगा।"
+    mr: "ICICI खात्यावर (शेवटचे अंक 7810) ₹4,500 चा तात्काळ परतावा (रिफंड) सुरू करेल, अधिकृत NOC पाठवेल आणि क्रेडिट ब्युरोला अपडेट पाठवेल."
+  what_it_does_not_do:
+    en: "Will not reopen your loan or affect your credit score."
+    hi: "आपका लोन दोबारा शुरू नहीं होगा और सिबिल स्कोर पर कोई नकारात्मक प्रभाव नहीं पड़ेगा।"
+    mr: "तुमचे कर्ज पुन्हा सुरू केले जाणार नाही आणि क्रेडिट स्कोअरवर कोणताही वाईट परिणाम होणार नाही."
+  how_to_undo:
+    en: "Tickets and requests can be tracked or managed from 24x7 Help in your app."
+    hi: "आप 24x7 सहायता अनुभाग से इस टिकट को कभी भी ट्रैक या प्रबंधित कर सकते हैं।"
+    mr: "तुम्ही ॲपमधील 24x7 मदत विभागातून या विनंतीची सद्यस्थिती कधीही पाहू शकता."
+
+receipt_spec:
+  status: "SUCCESS"
+  reference_prefix: "TKT-REF-"
+  timeline:
+    en: "Refund credited within 3-5 working days. NOC PDF sent to registered email within 24 hours."
+    hi: "रिफंड 3-5 कार्यदिवसों में आपके बैंक खाते में जमा होगा। NOC 24 घंटे में आपके ईमेल पर भेजी जाएगी।"
+    mr: "रिफंड 3-5 कामकाजाच्या दिवसांत तुमच्या खात्यात जमा होईल. NOC चे PDF 24 तासांच्या आत ईमेलवर पाठवले जाईल."
+

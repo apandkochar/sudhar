@@ -1,0 +1,72 @@
+{
+  "language": "en",
+  "language_label": "English",
+  "templates": {
+    "mandate_balance_failed": {
+      "title": "e-Mandate Setup Failed",
+      "explanation": "e-Mandate registration failed because your HDFC Bank account ending 9012 did not maintain the required setup balance. Don't worry, your State Bank of India account ending 4521 is active and eligible. Would you like to set up auto-debit using that account?",
+      "visual_type": "ACCOUNT_COMPARISON",
+      "visual_data": {
+        "failed_account": { "bank": "HDFC Bank", "last4": "9012", "status": "Insufficient Balance", "ok": false },
+        "suggested_account": { "bank": "State Bank of India (SBI)", "last4": "4521", "status": "Active & Sufficient", "ok": true }
+      },
+      "proposed_action": "retry_mandate",
+      "action_label": "Set up e-mandate on SBI account",
+      "action_params": {
+        "account_id": "ACC-SBI-4521",
+        "bank_name": "State Bank of India",
+        "account_last4": "4521"
+      }
+    },
+    "mandate_account_invalid": {
+      "title": "Bank Account Inactive",
+      "explanation": "Your destination bank reported that the selected account is closed or inactive. Please choose an active primary savings account to complete auto-debit setup.",
+      "visual_type": "ACCOUNT_STATUS",
+      "proposed_action": "retry_mandate",
+      "action_label": "Choose another account",
+      "action_params": {}
+    },
+    "post_closure_debit": {
+      "title": "EMI Debited After Loan Closure",
+      "explanation": "Your personal loan was fully closed on November 04, 2026. However, an EMI of ₹4,500 was debited on November 05 due to the automated clearing cycle. We propose opening an expedited refund ticket to return ₹4,500 to your account and expediting your No-Dues Certificate (NOC).",
+      "visual_type": "TIMELINE_MISMATCH",
+      "visual_data": {
+        "closure_event": { "title": "Loan Fully Closed", "date": "Nov 04, 2026", "status": "Verified" },
+        "erroneous_debit": { "title": "Excess EMI Debit", "date": "Nov 05, 2026", "amount": "₹4,500", "status": "Error" }
+      },
+      "proposed_action": "create_ticket",
+      "action_label": "Request ₹4,500 Refund & NOC",
+      "action_params": {
+        "ticket_type": "REFUND_AND_NOC",
+        "refund_amount": 4500,
+        "account_last4": "7810"
+      }
+    },
+    "vkyc_dropped": {
+      "title": "Video KYC Disconnected",
+      "explanation": "Your video KYC session was interrupted due to a network drop. Your PAN card verification is already completed. We can send a direct, secure resume link valid for 72 hours to your mobile ending 3210.",
+      "visual_type": "CHECKLIST",
+      "visual_data": {
+        "checklist": [
+          { "label": "Keep original physical PAN ready", "ready": true },
+          { "label": "Sit in a well-lit, quiet area", "ready": true },
+          { "label": "Ensure stable 4G / Wi-Fi", "ready": true }
+        ],
+        "valid_until": "Nov 17, 2026, 6:00 PM"
+      },
+      "proposed_action": "send_vkyc_resume_link",
+      "action_label": "Send Video KYC Resume Link",
+      "action_params": {
+        "mobile_last4": "3210"
+      }
+    },
+    "rejection_obligations": {
+      "title": "Application On Hold",
+      "explanation": "Based on existing active credit obligations, this application cannot proceed today. We can schedule a check in 90 days to reassess eligibility without affecting your credit score.",
+      "visual_type": "WAIT_PERIOD",
+      "proposed_action": "set_reminder",
+      "action_label": "Set 90-day reminder",
+      "action_params": { "days": 90 }
+    }
+  }
+}
