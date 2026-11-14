@@ -104,3 +104,4 @@ def test_idempotency_prevents_duplicate_action_execution(temp_db):
     trail = get_audit_trail("CASE-TEST-03", db_path=temp_db)
     idemp_hits = [t for t in trail if t["details"].get("idempotency_hit")]
     assert len(idemp_hits) == 1
+

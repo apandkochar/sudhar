@@ -94,3 +94,4 @@ def test_rohit_hero_flow_end_to_end():
     assert "CONSENT_RECEIVED" in final_stages
     assert "ACTION" in final_stages
     assert "AUDIT" in final_stages
+

@@ -79,3 +79,4 @@ def test_vkyc_rules_extracts_mobile():
     assert action == "send_vkyc_resume_link"
     assert params["mobile_last4"] == "3210"
     assert "send_vkyc_resume_link" in allowed
+
