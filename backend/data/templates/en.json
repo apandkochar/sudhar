@@ -4,7 +4,7 @@
   "templates": {
     "mandate_balance_failed": {
       "title": "e-Mandate Setup Failed",
-      "explanation": "e-Mandate registration failed because your HDFC Bank account ending 9012 did not maintain the required setup balance. Don't worry, your State Bank of India account ending 4521 is active and eligible. Would you like to set up auto-debit using that account?",
+      "explanation": "e-Mandate registration failed because your HDFC Bank account ending 9012 did not maintain the required setup balance. Don't worry, your State Bank of India account ending 4521 is active. Shall we set up auto-debit using that account?",
       "visual_type": "ACCOUNT_COMPARISON",
       "visual_data": {
         "failed_account": { "bank": "HDFC Bank", "last4": "9012", "status": "Insufficient Balance", "ok": false },
@@ -20,7 +20,7 @@
     },
     "mandate_account_invalid": {
       "title": "Bank Account Inactive",
-      "explanation": "Your destination bank reported that the selected account is closed or inactive. Please choose an active primary savings account to complete auto-debit setup.",
+      "explanation": "Your destination bank reported that the selected account is closed or inactive. Shall we choose an active primary savings account instead?",
       "visual_type": "ACCOUNT_STATUS",
       "proposed_action": "retry_mandate",
       "action_label": "Choose another account",
@@ -28,7 +28,7 @@
     },
     "post_closure_debit": {
       "title": "EMI Debited After Loan Closure",
-      "explanation": "Your personal loan was fully closed on November 04, 2026. However, an EMI of ₹4,500 was debited on November 05 due to the automated clearing cycle. We propose opening an expedited refund ticket to return ₹4,500 to your account and expediting your No-Dues Certificate (NOC).",
+      "explanation": "Your personal loan was fully closed on November 04, 2026. However, an EMI of ₹4,500 was debited on November 05 due to the clearing cycle. Shall we request an expedited refund of ₹4,500 and dispatch your No-Dues Certificate (NOC)?",
       "visual_type": "TIMELINE_MISMATCH",
       "visual_data": {
         "closure_event": { "title": "Loan Fully Closed", "date": "Nov 04, 2026", "status": "Verified" },
@@ -44,7 +44,7 @@
     },
     "vkyc_dropped": {
       "title": "Video KYC Disconnected",
-      "explanation": "Your video KYC session was interrupted due to a network drop. Your PAN card verification is already completed. We can send a direct, secure resume link valid for 72 hours to your mobile ending 3210.",
+      "explanation": "Your video KYC session was interrupted due to a network drop. Your PAN verification is completed. Shall we send a secure 72-hour direct resume link to your mobile ending 3210?",
       "visual_type": "CHECKLIST",
       "visual_data": {
         "checklist": [
@@ -62,7 +62,7 @@
     },
     "rejection_obligations": {
       "title": "Application On Hold",
-      "explanation": "Based on existing active credit obligations, this application cannot proceed today. We can schedule a check in 90 days to reassess eligibility without affecting your credit score.",
+      "explanation": "Based on existing active credit obligations, this application cannot proceed today. Shall we schedule a check in 90 days to reassess eligibility?",
       "visual_type": "WAIT_PERIOD",
       "proposed_action": "set_reminder",
       "action_label": "Set 90-day reminder",

@@ -122,14 +122,16 @@ def process_consent(
     if not case:
         raise ActionSecurityError(f"Case '{case_id}' not found")
         
-    # Non-negotiable: server-side injection of customer_id
     customer_id = case["customer_id"]
     
-    # 1. Non-negotiable: Action Allowlist check
+    # 1. Action Allowlist check
     if action not in ALLOWED_ACTIONS:
         add_audit_entry(
             case_id, "ACTION", "SAFETY_GATE", False,
-            {"error": f"Disallowed action '{action}' blocked by security gate"},
+            {
+                "summary": f"Disallowed action '{action}' blocked by safety gate",
+                "error": f"Disallowed action '{action}' blocked by security gate"
+            },
             idempotency_key=idempotency_key, db_path=db_path
         )
         raise ActionSecurityError(f"Action '{action}' is strictly forbidden by policy allowlist")
@@ -144,7 +146,12 @@ def process_consent(
         save_case(case, db_path=db_path)
         add_audit_entry(
             case_id, "CONSENT_RECEIVED", "CUSTOMER_ACTION", False,
-            {"consent_given": False, "action": action, "note": "Customer declined proposed action"},
+            {
+                "summary": f"Customer declined {action}",
+                "consent_given": False,
+                "action": action,
+                "note": "Customer declined proposed action"
+            },
             idempotency_key=idempotency_key, db_path=db_path
         )
         return {
@@ -158,6 +165,7 @@ def process_consent(
     add_audit_entry(
         case_id, "CONSENT_RECEIVED", "CUSTOMER_ACTION", False,
         {
+            "summary": f"Customer confirmed {action} via tap",
             "consent_given": True,
             "action": action,
             "selected_params": selected_params,
@@ -166,13 +174,14 @@ def process_consent(
         idempotency_key=idempotency_key, db_path=db_path
     )
 
-    # 5. Check Idempotency Key to prevent duplicate execution
+    # 5. Check Idempotency Key
     effective_idempotency_key = idempotency_key or f"IDEMP-{case_id}-{action}"
     cached_execution = check_idempotency(case_id, effective_idempotency_key, db_path=db_path)
     if cached_execution:
         add_audit_entry(
             case_id, "AUDIT", "DETERMINISTIC_CODE", False,
             {
+                "summary": "Duplicate request blocked · Returned cached receipt",
                 "idempotency_hit": True,
                 "key": effective_idempotency_key,
                 "message": "Duplicate request detected; returned existing execution receipt"
@@ -183,11 +192,14 @@ def process_consent(
 
     # 6. Execute simulated tool
     execution_result = simulate_tool_execution(action, case_id, customer_id, selected_params)
+    action_summary = f"{action} executed · Ref {execution_result.get('reference_id', 'DONE')}"
 
     # 7. Record action execution in audit log
+    execution_result_with_summary = dict(execution_result)
+    execution_result_with_summary["summary"] = action_summary
     add_audit_entry(
         case_id, "ACTION", "DETERMINISTIC_CODE", False,
-        execution_result,
+        execution_result_with_summary,
         idempotency_key=effective_idempotency_key, db_path=db_path
     )
 
@@ -200,6 +212,7 @@ def process_consent(
     add_audit_entry(
         case_id, "AUDIT", "DETERMINISTIC_CODE", False,
         {
+            "summary": "Case closed · Receipt logged",
             "final_status": "EXECUTED",
             "reference_id": execution_result.get("reference_id"),
             "audit_closed": True
@@ -208,4 +221,3 @@ def process_consent(
     )
 
     return execution_result
-

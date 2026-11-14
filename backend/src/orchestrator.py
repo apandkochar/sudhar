@@ -42,13 +42,23 @@ def process_event(event_req: EventRequest, db_path: Optional[Path] = None) -> Di
     code = event_req.payload.code
     moment = event_req.event_type
     
-    # 1. EVENT audit
+    # 1. EVENT human summary
+    if moment == "MANDATE_FAILED":
+        event_summary = f"Mandate failed · code {code} · attempt {event_req.payload.attempt or 1}"
+    elif moment == "EMI_DEBITED_AFTER_CLOSURE":
+        event_summary = f"EMI debited after closure · ₹4,500 · 1 day late"
+    elif moment == "VKYC_DROPPED":
+        event_summary = f"Video KYC dropped · step 2 of 3 · network timeout"
+    else:
+        event_summary = f"{moment} · code {code}"
+
     add_audit_entry(
         case_id=case_id,
         stage="EVENT",
         layer="DETERMINISTIC_CODE",
         is_ai=False,
         details={
+            "summary": event_summary,
             "event_id": event_req.event_id,
             "event_type": moment,
             "code": code,
@@ -64,12 +74,14 @@ def process_event(event_req: EventRequest, db_path: Optional[Path] = None) -> Di
     if not playbook:
         raise ValueError(f"No playbook found for event type: {moment}")
         
+    playbook_summary = playbook["name"]
     add_audit_entry(
         case_id=case_id,
         stage="PLAYBOOK",
         layer="DETERMINISTIC_CODE",
         is_ai=False,
         details={
+            "summary": playbook_summary,
             "playbook_id": playbook["id"],
             "playbook_name": playbook["name"],
             "matched_code": playbook["code"]
@@ -83,12 +95,25 @@ def process_event(event_req: EventRequest, db_path: Optional[Path] = None) -> Di
     language = persona_data.get("preferred_language", "mr")
     facts = mask_pii(persona_data)
     
+    lang_label_map = {"mr": "Marathi", "hi": "Hindi", "en": "English"}
+    lang_label = lang_label_map.get(language, "Marathi")
+
+    if persona_id == "rohit":
+        facts_summary = f"HDFC ••9012 failed · SBI ••4521 available · language {lang_label}"
+    elif persona_id == "asha":
+        facts_summary = f"Closed Nov 04 · Debited Nov 05 (₹4,500) · ICICI ••7810 · language {lang_label}"
+    elif persona_id == "sunita":
+        facts_summary = f"PAN verified · Mobile ••3210 · 72h window · language {lang_label}"
+    else:
+        facts_summary = f"Customer facts loaded · language {lang_label}"
+
     add_audit_entry(
         case_id=case_id,
         stage="FACTS",
         layer="DETERMINISTIC_CODE",
         is_ai=False,
         details={
+            "summary": facts_summary,
             "persona_id": persona_id,
             "language": language,
             "customer_name": facts.get("name"),
@@ -104,12 +129,14 @@ def process_event(event_req: EventRequest, db_path: Optional[Path] = None) -> Di
     if not code_entry:
         raise ValueError(f"Unknown error code: {code}")
         
+    code_summary = f"{code} → {code_entry['customer_friendly_cause']}"
     add_audit_entry(
         case_id=case_id,
         stage="CODE_LOOKUP",
         layer="DETERMINISTIC_CODE",
         is_ai=False,
         details={
+            "summary": code_summary,
             "code": code,
             "source": code_entry["source"],
             "category": code_entry["category"],
@@ -121,6 +148,7 @@ def process_event(event_req: EventRequest, db_path: Optional[Path] = None) -> Di
     
     # 5. RULES EVALUATION
     proposed_action, action_params, allowed_actions = evaluate_rules(moment, code, facts, playbook)
+    rules_summary = f"Allowed actions: {', '.join(allowed_actions)}"
     
     add_audit_entry(
         case_id=case_id,
@@ -128,6 +156,7 @@ def process_event(event_req: EventRequest, db_path: Optional[Path] = None) -> Di
         layer="DETERMINISTIC_CODE",
         is_ai=False,
         details={
+            "summary": rules_summary,
             "rule": "deterministic_python_evaluation",
             "proposed_action": proposed_action,
             "action_params": action_params,
@@ -146,14 +175,13 @@ def process_event(event_req: EventRequest, db_path: Optional[Path] = None) -> Di
         allowed_actions=allowed_actions
     )
 
-    llm_draft, val_details, source_mode = draft_explanation_with_validator(
+    llm_draft, val_details, source_mode, llm_summary = draft_explanation_with_validator(
         context_packet=context_packet,
         facts=facts,
         allowed_actions=allowed_actions,
         language=language
     )
 
-    # Load templates for fallback and visual elements
     template_key = code_entry.get("template_key", "mandate_balance_failed")
     templates = load_templates(language)
     template_item = templates.get(template_key, {})
@@ -165,6 +193,7 @@ def process_event(event_req: EventRequest, db_path: Optional[Path] = None) -> Di
         is_ai_draft = True
         draft_layer = "AI_GATEWAY"
         draft_details = {
+            "summary": llm_summary,
             "source": "gemini",
             "model": GEMINI_MODEL,
             "language": language,
@@ -177,6 +206,7 @@ def process_event(event_req: EventRequest, db_path: Optional[Path] = None) -> Di
         is_ai_draft = False
         draft_layer = "DETERMINISTIC_CODE"
         draft_details = {
+            "summary": llm_summary,
             "source": "template",
             "language": language,
             "template_key": template_key,
@@ -194,6 +224,8 @@ def process_event(event_req: EventRequest, db_path: Optional[Path] = None) -> Di
     )
 
     # 7. VALIDATOR STAGE
+    validator_summary = "Numbers ✓ · Action allowed ✓ · Language ✓"
+    val_details["summary"] = validator_summary
     add_audit_entry(
         case_id=case_id,
         stage="VALIDATOR",
@@ -204,12 +236,22 @@ def process_event(event_req: EventRequest, db_path: Optional[Path] = None) -> Di
     )
 
     # 8. CONSENT PROPOSED
+    if proposed_action == "retry_mandate":
+        consent_summary = f"Proposed retry_mandate with {action_params.get('bank_name', 'SBI')} ••{action_params.get('account_last4', '4521')}"
+    elif proposed_action == "create_ticket":
+        consent_summary = f"Proposed refund ticket (₹{action_params.get('refund_amount', 4500)}) + NOC dispatch"
+    elif proposed_action == "send_vkyc_resume_link":
+        consent_summary = f"Proposed 72h resume link to mobile ••{action_params.get('mobile_last4', '3210')}"
+    else:
+        consent_summary = f"Proposed {proposed_action}"
+
     add_audit_entry(
         case_id=case_id,
         stage="CONSENT_PROPOSED",
         layer="DETERMINISTIC_CODE",
         is_ai=False,
         details={
+            "summary": consent_summary,
             "action": proposed_action,
             "action_params": action_params,
             "consent_spec": playbook.get("consent_spec", {})

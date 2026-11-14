@@ -169,8 +169,24 @@ export default function Home() {
     }
   };
 
+  // Requirement 4: Show "Failed – action needed" before consent and "Registered" after; never internal states like PROPOSED
+  const getCustomerFriendlyStatus = () => {
+    if (cardStep === "RECEIPT" || caseData?.status === "EXECUTED") {
+      return {
+        label: "Registered",
+        colorClass: "bg-emerald-50 text-emerald-700 border-emerald-200"
+      };
+    }
+    return {
+      label: "Failed – action needed",
+      colorClass: "bg-amber-50 text-amber-800 border-amber-200"
+    };
+  };
+
+  const statusDisplay = getCustomerFriendlyStatus();
+
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
+    <div className="h-screen flex flex-col bg-slate-950 text-slate-100 overflow-hidden font-sans">
       {/* Top Scenario & Mode Bar */}
       <ScenarioBar
         onSelectPersona={(id) => {
@@ -184,8 +200,8 @@ export default function Home() {
         rescuesCount={rescuesCount}
       />
 
-      {/* Main Dual View Area (Phone Left, Console Right) */}
-      <div className="flex-1 flex flex-col lg:flex-row items-center lg:items-start justify-center p-4 lg:p-8 gap-8 overflow-hidden max-w-7xl mx-auto w-full">
+      {/* Main Dual View Area (Phone Left, Console Right) - Fits at 1280x800 */}
+      <div className="flex-1 flex flex-row items-center justify-center p-3 lg:p-6 gap-6 overflow-hidden max-w-7xl mx-auto w-full">
         {/* Left Side: 390px Mobile Phone */}
         <div className="flex-shrink-0">
           <PhoneFrame>
@@ -203,7 +219,7 @@ export default function Home() {
             {/* Journey Stepper */}
             <Stepper
               currentStep={activePersonaId === "sunita" ? 2 : 3}
-              isFailed={true}
+              isFailed={cardStep !== "RECEIPT"}
             />
 
             {/* Screen Content: Before vs After */}
@@ -211,9 +227,9 @@ export default function Home() {
               <BeforeScreen onSwitchToSudhaar={() => setIsBeforeMode(false)} />
             ) : (
               <div className="flex-1 flex flex-col justify-between bg-slate-100/70">
-                {/* Background Broken Step context */}
-                <div className="p-4 space-y-3">
-                  <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
+                {/* Background Context */}
+                <div className="p-3 space-y-2.5">
+                  <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-slate-500 font-medium">Applicant</span>
                       <span className="font-bold text-slate-800">
@@ -232,11 +248,10 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-[11px] text-amber-800 flex items-center justify-between">
-                    <span className="font-medium">Registration Status:</span>
-                    <span className="font-bold font-mono">
-                      {caseData?.status || "ANALYZING..."}
-                    </span>
+                  {/* Customer Friendly Status (Requirement 4) */}
+                  <div className={`border rounded-xl px-3 py-2 text-xs flex items-center justify-between font-semibold ${statusDisplay.colorClass}`}>
+                    <span className="text-[11px] font-medium">Application Status:</span>
+                    <span>{statusDisplay.label}</span>
                   </div>
                 </div>
 
@@ -300,8 +315,8 @@ export default function Home() {
           </PhoneFrame>
         </div>
 
-        {/* Right Side: Operator Console with Live Trace */}
-        <div className="flex-1 w-full h-[844px] flex flex-col">
+        {/* Right Side: Operator Console with Live Trace (Fits at 1280x800) */}
+        <div className="flex-1 w-full h-[810px] flex flex-col">
           <LiveTrace
             auditTrail={caseData?.audit_trail || []}
             activeCaseId={caseData?.case_id}

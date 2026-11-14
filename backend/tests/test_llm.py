@@ -13,7 +13,7 @@ def test_offline_mode_returns_template_fallback():
         "allowed_actions": ["retry_mandate"]
     }
     
-    draft, details, source_mode = draft_explanation_with_validator(
+    draft, details, source_mode, summary = draft_explanation_with_validator(
         context_packet=context_packet,
         facts={},
         allowed_actions=["retry_mandate"],

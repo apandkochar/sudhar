@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, Shield, Wifi, Battery, Signal } from "lucide-react";
+import { ArrowLeft, Wifi, Battery, Signal } from "lucide-react";
 
 interface PaytmHeaderProps {
   title?: string;
@@ -38,17 +38,11 @@ export const PaytmHeader: React.FC<PaytmHeaderProps> = ({
               <span>{title}</span>
             </h1>
             <p className="text-[10px] text-[#00BAF2] font-semibold tracking-wide uppercase">
-              Powered by Nimbus Finance
+              Nimbus Finance
             </p>
           </div>
-        </div>
-
-        <div className="flex items-center gap-1 bg-[#00BAF2]/20 px-2 py-0.5 rounded-full border border-[#00BAF2]/40 text-[10px] text-[#00BAF2] font-medium">
-          <Shield size={10} />
-          <span>RBI Regulated</span>
         </div>
       </div>
     </div>
   );
 };
-

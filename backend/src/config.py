@@ -19,11 +19,11 @@ for env_path in [ROOT_DIR / ".env", BASE_DIR / ".env"]:
                     if k and k not in os.environ:
                         os.environ[k] = v
 
-# Gemini settings
+# Gemini settings: gemini-3.5-flash-lite is the active fast model on v1beta
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 
-# Mode: "live" if explicitly requested or API key present; defaults to "live" when API key is set, else "offline"
+# Mode: defaults to "live" if API key present, else "offline"
 DEMO_MODE = os.getenv("DEMO_MODE", "live" if GEMINI_API_KEY else "offline")
 
 # Product metadata
