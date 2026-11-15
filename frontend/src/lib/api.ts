@@ -1,4 +1,5 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+const RAW_API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+const API_BASE = RAW_API_BASE.replace(/\/+$/, "");
 
 export interface AuditEntry {
   entry_id: string;

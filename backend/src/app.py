@@ -30,13 +30,14 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Enable CORS for local Next.js frontend development
+# Enable CORS for frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-TTS-Source"],
 )
 
 @app.get("/api/health")
