@@ -30,17 +30,20 @@ LANG_MAP = {
     "en-in": "en-IN",
 }
 
-def get_cache_key(lang: str, text: str) -> str:
-    """Computes sha256(lang+text) hex digest."""
-    return hashlib.sha256((lang + text).encode("utf-8")).hexdigest()
+def get_cache_key(lang: str, text: str, model: str = SARVAM_MODEL, speaker: Optional[str] = None) -> str:
+    """Computes sha256(model+speaker+lang+text) hex digest."""
+    target_lang_code = LANG_MAP.get(lang.lower(), "en-IN")
+    sp = speaker or CONVERSATIONAL_SPEAKERS.get(target_lang_code, "kavya_hi_conversational")
+    payload_str = f"{model}:{sp}:{lang}:{text}"
+    return hashlib.sha256(payload_str.encode("utf-8")).hexdigest()
 
-def get_cache_path(text: str, lang: str) -> Path:
+def get_cache_path(text: str, lang: str, model: str = SARVAM_MODEL, speaker: Optional[str] = None) -> Path:
     AUDIO_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    cache_key = get_cache_key(lang, text)
+    cache_key = get_cache_key(lang, text, model=model, speaker=speaker)
     return AUDIO_CACHE_DIR / f"{cache_key}.wav"
 
-def is_cached(text: str, lang: str) -> bool:
-    path = get_cache_path(text, lang)
+def is_cached(text: str, lang: str, model: str = SARVAM_MODEL, speaker: Optional[str] = None) -> bool:
+    path = get_cache_path(text, lang, model=model, speaker=speaker)
     return path.exists() and path.stat().st_size > 0
 
 def synthesize(text: str, lang: str, timeout_sec: float = 3.0) -> Optional[bytes]:

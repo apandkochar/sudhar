@@ -56,11 +56,23 @@ def main():
         char_count = len(text)
 
         was_cached = is_cached(text, lang)
-        audio = synthesize(text, lang, timeout_sec=10.0)
+        audio = None
+        if was_cached:
+            audio = synthesize(text, lang)
+        else:
+            for attempt in range(3):
+                audio = synthesize(text, lang, timeout_sec=10.0)
+                if audio:
+                    break
+                import time
+                time.sleep(1.5)
+
         is_now_cached = is_cached(text, lang)
 
         if not was_cached and audio:
             total_chars_sent += char_count
+            import time
+            time.sleep(1.0)
 
         results.append({
             "id": msg_id,
