@@ -617,7 +617,10 @@ export default function Home() {
                 </div>
               </div>
             ) : isBeforeMode ? (
-              <BeforeScreen onSwitchToSudhaar={() => setIsBeforeMode(false)} />
+              <BeforeScreen
+                personaId={activePersonaId}
+                onSwitchToSudhaar={() => setIsBeforeMode(false)}
+              />
             ) : (
               <div className="flex-1 flex flex-col justify-between bg-slate-100/70 min-h-0">
                 {/* Background Context */}
