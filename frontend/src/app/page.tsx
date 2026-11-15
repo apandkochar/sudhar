@@ -421,6 +421,31 @@ export default function Home() {
     }
   };
 
+  // Requirement 6: Log voice playback into the operator console trace
+  const handleVoiceLogged = (traceSummary: string, isAi: boolean) => {
+    setCaseData((prev: any) => {
+      if (!prev) return prev;
+      const nowIso = new Date().toISOString();
+      const existing = prev.audit_trail || [];
+      const newEntry: AuditEntry = {
+        entry_id: `AUD-VOICE-${Date.now()}`,
+        case_id: prev.case_id,
+        stage: "VOICE",
+        layer: isAi ? "AI_MODEL" : "DETERMINISTIC_CODE",
+        is_ai: isAi,
+        timestamp: nowIso,
+        details: {
+          summary: traceSummary,
+          source: isAi ? "sarvam" : "browser_fallback"
+        }
+      };
+      return {
+        ...prev,
+        audit_trail: [...existing, newEntry]
+      };
+    });
+  };
+
   // Requirement 4: Show "Failed – action needed" before consent and "Registered" after; never internal states like PROPOSED
   const getCustomerFriendlyStatus = () => {
     if (cardStep === "RECEIPT" || caseData?.status === "EXECUTED") {
@@ -540,6 +565,7 @@ export default function Home() {
                       onProposeAction={() => setCardStep("CONSENT")}
                       sourceMode={caseData.source_mode}
                       isDrafting={isProcessing}
+                      onVoiceLogged={handleVoiceLogged}
                     />
                   )}
 

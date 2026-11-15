@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Sparkles, CheckCircle2, XCircle, ArrowRight, ShieldCheck, Volume2, VolumeX, AlertTriangle, Calendar, Clock } from "lucide-react";
 import { LanguageChips } from "./LanguageChips";
+import { fetchTTSAudio } from "@/lib/api";
 
 interface SudhaarCardProps {
   language: string;
@@ -11,6 +12,7 @@ interface SudhaarCardProps {
   onProposeAction: () => void;
   sourceMode?: string;
   isDrafting?: boolean;
+  onVoiceLogged?: (traceSummary: string, isAi: boolean) => void;
 }
 
 export const SudhaarCard: React.FC<SudhaarCardProps> = ({
@@ -22,27 +24,29 @@ export const SudhaarCard: React.FC<SudhaarCardProps> = ({
   onProposeAction,
   sourceMode = "template",
   isDrafting = false,
+  onVoiceLogged,
 }) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     // Cancel any speech synthesis on language or explanation change
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
-      setIsSpeaking(false);
     }
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setIsSpeaking(false);
   }, [language, explanation]);
 
-  const handleToggleSpeak = () => {
+  const fallbackToBrowserSpeech = () => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      alert("Text-to-speech not supported in this browser.");
-      return;
-    }
-    if (isSpeaking) {
-      window.speechSynthesis.cancel();
       setIsSpeaking(false);
       return;
     }
+    onVoiceLogged?.("Voice: browser fallback", false);
     const utterance = new SpeechSynthesisUtterance(explanation);
     utterance.lang = language === "hi" ? "hi-IN" : language === "mr" ? "mr-IN" : "en-IN";
     utterance.rate = 0.95;
@@ -50,6 +54,51 @@ export const SudhaarCard: React.FC<SudhaarCardProps> = ({
     utterance.onerror = () => setIsSpeaking(false);
     setIsSpeaking(true);
     window.speechSynthesis.speak(utterance);
+  };
+
+  const handleToggleSpeak = async () => {
+    if (isSpeaking) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+      setIsSpeaking(false);
+      return;
+    }
+
+    try {
+      setIsSpeaking(true);
+      const res = await fetchTTSAudio(explanation, language);
+      if (res && res.blob) {
+        const trace = res.source === "cached" ? "Voice: Sarvam (cached)" : "Voice: Sarvam";
+        onVoiceLogged?.(trace, true);
+
+        const url = URL.createObjectURL(res.blob);
+        const audio = new Audio(url);
+        audioRef.current = audio;
+
+        audio.onended = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(url);
+          audioRef.current = null;
+        };
+        audio.onerror = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(url);
+          audioRef.current = null;
+          fallbackToBrowserSpeech();
+        };
+
+        await audio.play();
+      } else {
+        fallbackToBrowserSpeech();
+      }
+    } catch {
+      fallbackToBrowserSpeech();
+    }
   };
 
   const isAccountComparison = visualData && visualData.failed_account && visualData.suggested_account;

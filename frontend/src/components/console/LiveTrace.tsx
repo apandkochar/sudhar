@@ -38,6 +38,23 @@ export const LiveTrace: React.FC<LiveTraceProps> = ({
   };
 
   const getLayerBadge = (stage: string, layer: string, isAi: boolean, details: Record<string, any>) => {
+    if (stage === "VOICE") {
+      if (isAi || details.source === "sarvam") {
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-purple-900/70 text-purple-200 border border-purple-400 shadow-sm flex-shrink-0">
+            <Sparkles size={11} className="text-purple-300" />
+            <span>AI MODEL (Sarvam)</span>
+          </span>
+        );
+      }
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-sky-950/80 text-sky-300 border border-sky-600/40 flex-shrink-0">
+          <Cpu size={11} />
+          <span>DETERMINISTIC CODE</span>
+        </span>
+      );
+    }
+
     if (stage === "LLM_DRAFT" || isAi) {
       if (isAi || details.source === "gemini" || (details.summary && details.summary.includes("Gemini"))) {
         return (

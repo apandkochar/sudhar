@@ -119,3 +119,22 @@ export async function fetchRecentCases(): Promise<CaseSummary[]> {
   return res.json();
 }
 
+export async function fetchTTSAudio(text: string, lang: string): Promise<{ blob: Blob; source: string } | null> {
+  try {
+    const res = await fetch(`${API_BASE}/tts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, lang }),
+    });
+    if (res.status === 200) {
+      const blob = await res.blob();
+      const source = res.headers.get("X-TTS-Source") || "cached";
+      return { blob, source };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+

@@ -2,14 +2,20 @@ import json
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Response, status
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from src.actions import ActionSecurityError, process_consent
 from src.config import DATA_DIR, DEMO_MODE, DISCLAIMER, LENDER_NAME, PRODUCT_NAME
 from src.db import get_audit_stats, get_audit_trail, get_case, init_db, list_recent_cases, reset_db
 from src.orchestrator import load_playbooks, process_event
 from src.schemas import CaseResponse, ConsentRequest, EventRequest
+from src.tts import is_cached, synthesize
+
+class TTSRequest(BaseModel):
+    text: str
+    lang: str
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -135,4 +141,25 @@ def reset_scenario_data() -> Dict[str, str]:
     """
     reset_db()
     return {"status": "success", "message": "Demo database reset to clean state"}
+
+@app.post("/api/tts")
+def text_to_speech(req: TTSRequest):
+    """
+    Synthesizes speech using Sarvam TTS with disk cache.
+    Returns audio/wav bytes with X-TTS-Source header.
+    Returns HTTP 204 No Content on error, timeout, missing key, or offline cache-miss.
+    """
+    cached = is_cached(req.text, req.lang)
+    audio_bytes = synthesize(req.text, req.lang)
+    if not audio_bytes:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    return Response(
+        content=audio_bytes,
+        media_type="audio/wav",
+        headers={
+            "X-TTS-Source": "cached" if cached else "live"
+        }
+    )
+
 
