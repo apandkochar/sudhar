@@ -32,6 +32,12 @@ POST_CLOSURE_CAUSE_PHRASES = [
     "ऑटोमेटेड"
 ]
 
+RECOMMENDATION_PHRASES = [
+    "you should",
+    "चांगले आहे",
+    "बेहतर है"
+]
+
 DEVANAGARI_DIGITS_MAP = str.maketrans("०१२३४५६७८९", "0123456789")
 
 MONTH_ALIASES = {
@@ -234,6 +240,11 @@ def validate_llm_output(
         for phrase in POST_CLOSURE_CAUSE_PHRASES:
             if phrase.lower() in raw_lower:
                 errors.append(f"Post-closure debit message states unverified cause ('{phrase}'); must state no cause.")
+
+    # 2c. Recommendation phrases check (No advice permitted)
+    for rec in RECOMMENDATION_PHRASES:
+        if rec.lower() in raw_lower:
+            errors.append(f"Recommendation phrase detected: '{rec}'; advice is not permitted.")
 
     # 3. Required entities check: if mandate retry with secondary account, verify account last4 is mentioned
     target_account_last4 = None

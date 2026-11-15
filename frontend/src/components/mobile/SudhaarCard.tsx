@@ -104,6 +104,7 @@ export const SudhaarCard: React.FC<SudhaarCardProps> = ({
   const isAccountComparison = visualData && visualData.failed_account && visualData.suggested_account;
   const isTimelineMismatch = visualData && visualData.closure_event && visualData.erroneous_debit;
   const isChecklist = visualData && visualData.checklist;
+  const isDeductionBreakup = visualData && visualData.deductions;
 
   return (
     <div className="bg-white rounded-t-3xl border-t-2 border-[#00BAF2] shadow-2xl p-4 md:p-5 flex flex-col gap-3.5 animate-in slide-in-from-bottom duration-300">
@@ -276,6 +277,28 @@ export const SudhaarCard: React.FC<SudhaarCardProps> = ({
             </div>
           ))}
           <p className="text-[10px] text-slate-500 pt-1 font-mono">Valid until: {visualData.valid_until}</p>
+        </div>
+      )}
+
+      {/* Visual Component: Meena Deduction Breakup */}
+      {isDeductionBreakup && !isDrafting && (
+        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs space-y-1.5">
+          <div className="flex justify-between items-center text-[11px] pb-1 border-b border-slate-200 font-semibold text-slate-800">
+            <span>Approved Loan</span>
+            <span className="font-bold text-[#002970]">{visualData.approved_amount}</span>
+          </div>
+          <div className="space-y-1 text-[10px]">
+            {visualData.deductions.map((d: any, idx: number) => (
+              <div key={idx} className="flex justify-between items-center text-slate-600">
+                <span>{d.label}</span>
+                <span className="font-mono font-medium text-slate-700">{d.amount}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-between items-center text-[11px] pt-1 border-t border-slate-200 font-bold text-emerald-700">
+            <span>Net Disbursed</span>
+            <span>{visualData.disbursed_amount}</span>
+          </div>
         </div>
       )}
 

@@ -59,6 +59,15 @@ def generate_with_gemini(
 - POST-CLOSURE DEBIT SPECIFIC: State NO cause for the debit. STRICTLY DO NOT use words stating a cause: 'because', 'due to', 'automated', 'कारण', 'क्योंकि', 'ऑटोमेटेड'.
 - Must include both dates: closure date (04-11-2026 / 04 Nov) and debit date (05-11-2026 / 05 Nov), the amount (₹4,500 or 4500), and account ending 7810.
 - Must ask whether to raise all three requests: (1) full refund of ₹4500, (2) NOC dispatch, and (3) credit-report correction."""
+    elif context_packet.get("moment") == "DISBURSAL_CREDITED" or context_packet.get("playbook_id") in ["disbursal_breakup", "PB-DISBURSAL-BREAKUP-01"]:
+        post_closure_rules = """
+- DISBURSAL BREAKUP SPECIFIC:
+  * List each deduction with exact amounts: processing fee ₹2000, GST ₹360, 6 days broken-period interest ₹395, and loan insurance ₹1200.
+  * State that they add up to the difference between approved ₹100000 and disbursed ₹96045 (total deductions ₹3955).
+  * State clearly that loan insurance is optional as per her loan terms.
+  * Give NO advice (never say 'you should', 'चांगले आहे', 'बेहतर है').
+  * State no cause beyond the loan terms.
+  * End by asking whether to send the full breakup and loan documents to her inbox."""
 
     user_prompt = f"""Task: {context_packet.get('task')}
 Language: {context_packet.get('language')}

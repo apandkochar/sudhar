@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 class EventPayload(BaseModel):
+    model_config = {"extra": "allow"}
     code: str
     attempt: Optional[int] = 1
     bank_account_masked: Optional[str] = None
@@ -9,6 +10,8 @@ class EventPayload(BaseModel):
     loan_id: Optional[str] = None
     debit_amount: Optional[float] = None
     debit_date: Optional[str] = None
+    approved_amount: Optional[float] = None
+    disbursed_amount: Optional[float] = None
     disconnect_reason: Optional[str] = None
     language: Optional[str] = None
     extra: Optional[Dict[str, Any]] = Field(default_factory=dict)

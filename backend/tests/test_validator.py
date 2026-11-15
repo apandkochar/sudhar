@@ -189,4 +189,91 @@ def test_mandate_validator_allows_karan_phrase():
     assert res.passed is True
     assert len(res.errors) == 0
 
+def test_disbursal_validator_rejects_wrong_amount():
+    facts = {
+        "approved_amount": 100000,
+        "disbursed_amount": 96045,
+        "processing_fee": 2000,
+        "processing_fee_gst": 360,
+        "broken_period_interest": 395,
+        "insurance_premium": 1200,
+        "total_deductions": 3955,
+        "account_last4": "4412"
+    }
+    allowed_actions = ["send_breakup_and_documents", "raise_insurance_cancellation_request"]
+
+    # Hallucinated / wrong ungrounded amount (₹5,000 or ₹95,000)
+    invalid_draft = {
+        "explanation": "तुमच्या ₹100000 च्या कर्जातून ₹95000 जमा झाले आणि ₹5000 कपात झाली. कागदपत्रे पाठवू का?",
+        "proposed_action": "send_breakup_and_documents"
+    }
+    res = validate_llm_output(
+        invalid_draft,
+        facts=facts,
+        allowed_actions=allowed_actions,
+        expected_language="mr",
+        playbook_id="disbursal_breakup"
+    )
+    assert res.passed is False
+    assert any("Ungrounded amount" in err for err in res.errors)
+
+def test_disbursal_validator_rejects_recommendation_phrases():
+    facts = {
+        "approved_amount": 100000,
+        "disbursed_amount": 96045,
+        "processing_fee": 2000,
+        "processing_fee_gst": 360,
+        "broken_period_interest": 395,
+        "insurance_premium": 1200,
+        "total_deductions": 3955,
+        "account_last4": "4412"
+    }
+    allowed_actions = ["send_breakup_and_documents"]
+
+    recommendation_cases = [
+        ("you should", "You should review your loan terms before proceeding.", "en"),
+        ("चांगले आहे", "विमा पॉलिसी चालू ठेवणे आपल्यासाठी चांगले आहे.", "mr"),
+        ("बेहतर है", "बीमा पॉलिसी रखना आपके लिए बेहतर है।", "hi")
+    ]
+    for phrase, text, lang in recommendation_cases:
+        res = validate_llm_output(
+            {"explanation": text, "proposed_action": "send_breakup_and_documents"},
+            facts=facts,
+            allowed_actions=allowed_actions,
+            expected_language=lang,
+            playbook_id="disbursal_breakup"
+        )
+        assert res.passed is False, f"Expected rejection for phrase: '{phrase}'"
+        assert any("Recommendation phrase detected" in err for err in res.errors)
+
+def test_disbursal_validator_passes_valid_meena_text():
+    facts = {
+        "approved_amount": 100000,
+        "disbursed_amount": 96045,
+        "processing_fee": 2000,
+        "processing_fee_gst": 360,
+        "broken_period_interest": 395,
+        "insurance_premium": 1200,
+        "total_deductions": 3955,
+        "broken_period_days": 6,
+        "account_last4": "4412"
+    }
+    allowed_actions = ["send_breakup_and_documents", "raise_insurance_cancellation_request"]
+
+    valid_marathi = {
+        "explanation": "तुमच्या ₹100000 च्या मंजूर कर्जातून ₹96045 जमा झाले असून एकूण ₹3955 कपात झाली आहे. यात प्रोसेसिंग फी ₹2000, जीएसटी ₹360, 6 दिवसांचे ब्रोकन-पीरियड व्याज ₹395 आणि कर्ज विमा प्रीमियम ₹1200 (कर्ज अटींनुसार विमा ऐच्छिक आहे) यांचा समावेश आहे. ही सर्व कपात फरकाएवढी भरते. संपूर्ण कपात तपशील आणि कर्ज कागदपत्रे तुमच्या ईमेलवर पाठवू का?",
+        "proposed_action": "send_breakup_and_documents",
+        "action_label": "तपशील व कागदपत्रे पाठवा",
+        "confidence": 0.95
+    }
+    res = validate_llm_output(
+        valid_marathi,
+        facts=facts,
+        allowed_actions=allowed_actions,
+        expected_language="mr",
+        playbook_id="disbursal_breakup"
+    )
+    assert res.passed is True
+    assert len(res.errors) == 0
+
 

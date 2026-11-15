@@ -49,6 +49,8 @@ def process_event(event_req: EventRequest, db_path: Optional[Path] = None) -> Di
         event_summary = f"EMI debited after closure · ₹4,500 · 1 day late"
     elif moment == "VKYC_DROPPED":
         event_summary = f"Video KYC dropped · step 2 of 3 · network timeout"
+    elif moment == "DISBURSAL_CREDITED":
+        event_summary = f"Disbursal credited · ₹96,045 of ₹1,00,000 · deductions query"
     else:
         event_summary = f"{moment} · code {code}"
 
@@ -97,6 +99,13 @@ def process_event(event_req: EventRequest, db_path: Optional[Path] = None) -> Di
     language = requested_language if requested_language in ["mr", "hi", "en"] else persona_data.get("preferred_language", "mr")
     facts = mask_pii(persona_data)
     
+    # Merge payload fields into facts so dynamic event parameters take effect
+    payload_dict = event_req.payload.model_dump() if hasattr(event_req.payload, "model_dump") else (event_req.payload.dict() if hasattr(event_req.payload, "dict") else dict(event_req.payload))
+    if isinstance(facts, dict):
+        facts.update({k: v for k, v in payload_dict.items() if v is not None})
+        if "facts" in facts and isinstance(facts["facts"], dict):
+            facts["facts"].update({k: v for k, v in payload_dict.items() if v is not None})
+    
     lang_label_map = {"mr": "Marathi", "hi": "Hindi", "en": "English"}
     lang_label = lang_label_map.get(language, "Marathi")
 
@@ -106,6 +115,8 @@ def process_event(event_req: EventRequest, db_path: Optional[Path] = None) -> Di
         facts_summary = f"Closed Nov 04 · Debited Nov 05 (₹4,500) · ICICI ••7810 · language {lang_label}"
     elif persona_id == "sunita":
         facts_summary = f"PAN verified · Mobile ••3210 · 72h window · language {lang_label}"
+    elif persona_id == "meena":
+        facts_summary = f"Approved ₹1,00,000 · Disbursed ₹96,045 · Fee ₹2,000 · GST ₹360 · Broken Int ₹395 · Ins ₹1,200 · language {lang_label}"
     else:
         facts_summary = f"Customer facts loaded · language {lang_label}"
 
@@ -167,6 +178,42 @@ def process_event(event_req: EventRequest, db_path: Optional[Path] = None) -> Di
         db_path=db_path
     )
     
+    if proposed_action == "handover_to_human":
+        # Deterministic math mismatch -> Hand over to a human, no message
+        add_audit_entry(
+            case_id=case_id,
+            stage="HUMAN_HANDOVER",
+            layer="SAFETY_GATE",
+            is_ai=False,
+            details={
+                "summary": "Deductions mismatch · Handed over to human specialist (no automated message)",
+                "reason": action_params.get("reason", "deductions_mismatch"),
+                "no_message": True
+            },
+            db_path=db_path
+        )
+        case_record = {
+            "case_id": case_id,
+            "customer_id": customer_id,
+            "persona_id": persona_id,
+            "status": "HANDOVER",
+            "moment": moment,
+            "language": language,
+            "facts": facts,
+            "playbook_id": playbook["id"],
+            "proposed_action": "handover_to_human",
+            "action_label": "Human Specialist Handover",
+            "action_params": action_params,
+            "allowed_actions": allowed_actions,
+            "cause_explanation": "",
+            "visual_data": {},
+            "source_mode": "deterministic",
+            "receipt": None
+        }
+        save_case(case_record, db_path=db_path)
+        case_record["audit_trail"] = get_audit_trail(case_id, db_path=db_path)
+        return case_record
+
     # 6. LLM GATEWAY (Gemini with Schema Output OR Template Fallback)
     context_packet = build_context_packet(
         task="explain_and_propose",
@@ -227,6 +274,8 @@ def process_event(event_req: EventRequest, db_path: Optional[Path] = None) -> Di
         consent_summary = f"Proposed refund ticket (₹{action_params.get('refund_amount', 4500)}) + NOC dispatch"
     elif proposed_action == "send_vkyc_resume_link":
         consent_summary = f"Proposed 72h resume link to mobile ••{action_params.get('mobile_last4', '3210')}"
+    elif proposed_action == "send_breakup_and_documents":
+        consent_summary = f"Proposed send_breakup_and_documents to inbox (Approved ₹1,00,000 vs Disbursed ₹96,045)"
     else:
         consent_summary = f"Proposed {proposed_action}"
 

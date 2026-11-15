@@ -1,0 +1,63 @@
+{
+  "persona_id": "meena",
+  "name": "Meena Jadhav",
+  "city": "Pune",
+  "occupation": "Healthcare Worker",
+  "preferred_language": "mr",
+  "customer_id": "CUST-MEENA-501",
+  "pan_masked": "XXXXX9876M",
+  "mobile_masked": "+91-98XXXX4412",
+  "loan_details": {
+    "loan_id": "LN-MEENA-100K",
+    "lender": "Nimbus Finance",
+    "approved_amount": 100000,
+    "loan_amount": 100000,
+    "processing_fee_pct": 2.0,
+    "gst_pct": 18.0,
+    "annual_interest_rate_pct": 24.0,
+    "broken_period_days": 6,
+    "insurance_premium": 1200,
+    "total_deductions": 3955,
+    "disbursed_amount": 96045,
+    "status": "DISBURSED"
+  },
+  "bank_account": {
+    "account_id": "ACC-BOM-4412",
+    "bank_name": "Bank of Maharashtra",
+    "ifsc": "MAHB0001234",
+    "account_last4": "4412"
+  },
+  "facts": {
+    "approved_amount": 100000,
+    "loan_amount": 100000,
+    "principal": 100000,
+    "processing_fee_pct": 2.0,
+    "processing_fee": 2000,
+    "gst_pct": 18.0,
+    "processing_fee_gst": 360,
+    "annual_interest_rate_pct": 24.0,
+    "broken_period_days": 6,
+    "broken_period_interest": 395,
+    "insurance_premium": 1200,
+    "insurance_optional": true,
+    "total_deductions": 3955,
+    "disbursed_amount": 96045,
+    "net_disbursed": 96045,
+    "difference": 3955,
+    "bank_name": "Bank of Maharashtra",
+    "account_last4": "4412"
+  },
+  "trigger_event": {
+    "event_id": "EVT-MEENA-DISB-01",
+    "event_type": "DISBURSAL_CREDITED",
+    "timestamp": "2026-11-15T09:00:00+05:30",
+    "customer_id": "CUST-MEENA-501",
+    "payload": {
+      "code": "LMS_DISBURSAL_BREAKUP",
+      "loan_id": "LN-MEENA-100K",
+      "approved_amount": 100000,
+      "disbursed_amount": 96045,
+      "bank_account_masked": "Bank of Maharashtra ending 4412"
+    }
+  }
+}

@@ -10,7 +10,9 @@ ALLOWED_ACTIONS = {
     "request_noc",
     "request_bureau_correction",
     "set_reminder",
-    "book_callback"
+    "book_callback",
+    "send_breakup_and_documents",
+    "raise_insurance_cancellation_request"
 }
 
 class ActionSecurityError(Exception):
@@ -109,6 +111,36 @@ def simulate_tool_execution(
             "reference_id": f"CALL-{suffix}",
             "slot": slot,
             "message": "Senior loan specialist will call on your registered mobile number",
+            "executed_at": now_iso
+        }
+    elif action == "send_breakup_and_documents":
+        approved_amount = params.get("approved_amount", 100000)
+        disbursed_amount = params.get("disbursed_amount", 96045)
+        total_deductions = params.get("total_deductions", 3955)
+        account_last4 = params.get("account_last4", "4412")
+        ref_doc = f"DOC-BRK-{suffix}"
+        return {
+            "status": "SUCCESS",
+            "action": action,
+            "reference_id": ref_doc,
+            "approved_amount": approved_amount,
+            "disbursed_amount": disbursed_amount,
+            "total_deductions": total_deductions,
+            "account_last4": account_last4,
+            "delivery_channel": "Registered Email & App Inbox",
+            "message": "Full deduction breakup and official loan documents dispatched to your inbox",
+            "executed_at": now_iso
+        }
+    elif action == "raise_insurance_cancellation_request":
+        insurance_premium = params.get("insurance_premium", 1200)
+        ref_ins = f"INS-CAN-{suffix}"
+        return {
+            "status": "SUCCESS",
+            "action": action,
+            "reference_id": ref_ins,
+            "insurance_premium": insurance_premium,
+            "decision_policy": "Lender decides within 48-72 hours",
+            "message": "Insurance cancellation request submitted to Nimbus Finance. Decision pending lender review.",
             "executed_at": now_iso
         }
     else:
@@ -227,5 +259,18 @@ def process_consent(
         },
         idempotency_key=effective_idempotency_key, db_path=db_path
     )
+
+    # Console trace line: when resolved, trace line "Support ticket avoided: disbursal amount query"
+    if action in ["send_breakup_and_documents", "raise_insurance_cancellation_request"] or case.get("moment") == "DISBURSAL_CREDITED":
+        add_audit_entry(
+            case_id, "RESOLUTION", "DETERMINISTIC_CODE", False,
+            {
+                "summary": "Support ticket avoided: disbursal amount query",
+                "ticket_avoided": True,
+                "category": "disbursal_amount_query",
+                "resolved_at": datetime.now(timezone.utc).isoformat()
+            },
+            idempotency_key=f"{effective_idempotency_key}-AVOIDED", db_path=db_path
+        )
 
     return execution_result

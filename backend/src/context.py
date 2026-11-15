@@ -44,6 +44,8 @@ def build_context_packet(
     cause_val = code_entry.get("customer_friendly_cause", code_entry.get("description"))
     if moment == "EMI_DEBITED_AFTER_CLOSURE":
         cause_val = "Debit occurred after confirmed loan closure date (unverified cause)."
+    elif moment == "DISBURSAL_CREDITED":
+        cause_val = "Scheduled upfront deductions as per loan terms."
 
     return {
         "task": task,

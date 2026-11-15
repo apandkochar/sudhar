@@ -38,7 +38,7 @@ def test_playbooks_yaml():
     playbook_files = list(playbooks_dir.glob("*.yaml"))
     assert len(playbook_files) >= 3
     
-    expected_playbooks = ["mandate_retry.yaml", "post_closure.yaml", "vkyc_resume.yaml"]
+    expected_playbooks = ["mandate_retry.yaml", "post_closure.yaml", "vkyc_resume.yaml", "disbursal_breakup.yaml"]
     for expected in expected_playbooks:
         pb_path = playbooks_dir / expected
         assert pb_path.exists()
@@ -63,6 +63,7 @@ def test_templates_all_languages():
             assert "mandate_balance_failed" in templates
             assert "post_closure_debit" in templates
             assert "vkyc_dropped" in templates
+            assert "disbursal_breakup" in templates
             
             # Check content
             for key, item in templates.items():
@@ -73,7 +74,7 @@ def test_templates_all_languages():
 
 def test_personas_facts_and_masking():
     personas_dir = DATA_DIR / "personas"
-    for persona_id in ["rohit", "asha", "sunita"]:
+    for persona_id in ["rohit", "asha", "sunita", "meena"]:
         p_path = personas_dir / f"{persona_id}.json"
         assert p_path.exists(), f"Missing persona {persona_id}"
         with open(p_path, "r", encoding="utf-8") as f:

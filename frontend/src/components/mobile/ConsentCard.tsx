@@ -7,9 +7,14 @@ interface ConsentCardProps {
   whatItDoes: string;
   whatItDoesNotDo: string;
   howToUndo: string;
-  onConfirm: () => void;
+  onConfirm: (chosenAction?: string) => void;
   onDecline: () => void;
   isProcessing?: boolean;
+  secondaryOption?: {
+    action: string;
+    label: string;
+    description: string;
+  };
 }
 
 export const ConsentCard: React.FC<ConsentCardProps> = ({
@@ -21,13 +26,16 @@ export const ConsentCard: React.FC<ConsentCardProps> = ({
   onConfirm,
   onDecline,
   isProcessing = false,
+  secondaryOption,
 }) => {
   const [hasTapped, setHasTapped] = useState(false);
+  const [chosenAction, setChosenAction] = useState<string>(actionName);
   const tappedRef = useRef(false);
 
   useEffect(() => {
     tappedRef.current = false;
     setHasTapped(false);
+    setChosenAction(actionName);
   }, [actionName]);
 
   const handleConfirmClick = (e: React.MouseEvent) => {
@@ -37,7 +45,7 @@ export const ConsentCard: React.FC<ConsentCardProps> = ({
     }
     tappedRef.current = true;
     setHasTapped(true);
-    onConfirm();
+    onConfirm(chosenAction);
   };
 
   const isButtonDisabled = hasTapped || isProcessing;
@@ -57,6 +65,38 @@ export const ConsentCard: React.FC<ConsentCardProps> = ({
           </p>
         </div>
       </div>
+
+      {/* Optional Secondary Action Choice (e.g. Meena Insurance Cancellation) */}
+      {secondaryOption && (
+        <div className="space-y-1.5 p-2 bg-blue-50/50 rounded-xl border border-blue-200/80 text-xs">
+          <span className="text-[10px] font-bold text-[#002970] uppercase tracking-wider block">
+            Select Request:
+          </span>
+          <label className="flex items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-white text-[11px]">
+            <input
+              type="radio"
+              name="actionChoice"
+              checked={chosenAction === actionName}
+              onChange={() => setChosenAction(actionName)}
+              className="text-[#002970]"
+            />
+            <span className="font-medium text-slate-800">Send full deduction breakup & loan documents</span>
+          </label>
+          <label className="flex items-start gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-white text-[11px]">
+            <input
+              type="radio"
+              name="actionChoice"
+              checked={chosenAction === secondaryOption.action}
+              onChange={() => setChosenAction(secondaryOption.action)}
+              className="text-[#002970] mt-0.5"
+            />
+            <div>
+              <span className="font-medium text-slate-800 block">{secondaryOption.label}</span>
+              <span className="text-[10px] text-slate-500">{secondaryOption.description}</span>
+            </div>
+          </label>
+        </div>
+      )}
 
       {/* 3 Explicit Disclosures */}
       <div className="space-y-2.5 text-xs">

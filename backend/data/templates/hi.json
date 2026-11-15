@@ -67,6 +67,34 @@
       "proposed_action": "set_reminder",
       "action_label": "90 दिनों का रिमाइंडर सेट करें",
       "action_params": { "days": 90 }
+    },
+    "disbursal_breakup": {
+      "title": "लोन संवितरण कटौती विवरण",
+      "explanation": "आपके ₹100000 के स्वीकृत लोन में से ₹96045 खाते में जमा हुए हैं और कुल ₹3955 की कटौती हुई है। इसमें प्रोसेसिंग फीस ₹2000, जीएसटी ₹360, 6 दिनों का ब्रोकन-पीरियड ब्याज ₹395 और लोन बीमा प्रीमियम ₹1200 (लोन शर्तों के अनुसार बीमा वैकल्पिक है) शामिल हैं। ये सभी कटौतियाँ अंतर के बराबर हैं। क्या हम पूरा कटौती विवरण और लोन दस्तावेज आपके इनबॉक्स में भेजें?",
+      "visual_type": "DEDUCTION_BREAKUP",
+      "visual_data": {
+        "approved_amount": "₹1,00,000",
+        "disbursed_amount": "₹96,045",
+        "deductions": [
+          { "label": "प्रोसेसिंग फीस (2%)", "amount": "₹2,000" },
+          { "label": "जीएसटी (18%)", "amount": "₹360" },
+          { "label": "ब्रोकन-पीरियड ब्याज (6 दिन)", "amount": "₹395" },
+          { "label": "लोन बीमा प्रीमियम (वैकल्पिक)", "amount": "₹1,200" }
+        ],
+        "total_deductions": "₹3,955"
+      },
+      "proposed_action": "send_breakup_and_documents",
+      "action_label": "विवरण और दस्तावेज भेजें",
+      "action_params": {
+        "approved_amount": 100000,
+        "disbursed_amount": 96045,
+        "total_deductions": 3955,
+        "processing_fee": 2000,
+        "processing_fee_gst": 360,
+        "broken_period_interest": 395,
+        "insurance_premium": 1200,
+        "account_last4": "4412"
+      }
     }
   }
 }

@@ -67,6 +67,34 @@
       "proposed_action": "set_reminder",
       "action_label": "90 दिवसांचा रिमाइंडर ठेवा",
       "action_params": { "days": 90 }
+    },
+    "disbursal_breakup": {
+      "title": "कर्ज वितरण कपात तपशील",
+      "explanation": "तुमच्या ₹100000 च्या मंजूर कर्जातून ₹96045 जमा झाले असून एकूण ₹3955 कपात झाली आहे. यात प्रोसेसिंग फी ₹2000, जीएसटी ₹360, 6 दिवसांचे ब्रोकन-पीरियड व्याज ₹395 आणि कर्ज विमा प्रीमियम ₹1200 (कर्ज अटींनुसार विमा ऐच्छिक आहे) यांचा समावेश आहे. ही सर्व कपात फरकाएवढी भरते. संपूर्ण कपात तपशील आणि कर्ज कागदपत्रे तुमच्या ईमेलवर पाठवू का?",
+      "visual_type": "DEDUCTION_BREAKUP",
+      "visual_data": {
+        "approved_amount": "₹1,00,000",
+        "disbursed_amount": "₹96,045",
+        "deductions": [
+          { "label": "प्रोसेसिंग फी (2%)", "amount": "₹2,000" },
+          { "label": "जीएसटी (18%)", "amount": "₹360" },
+          { "label": "ब्रोकन-पीरियड व्याज (6 दिवस)", "amount": "₹395" },
+          { "label": "कर्ज विमा प्रीमियम (ऐच्छिक)", "amount": "₹1,200" }
+        ],
+        "total_deductions": "₹3,955"
+      },
+      "proposed_action": "send_breakup_and_documents",
+      "action_label": "तपशील व कागदपत्रे पाठवा",
+      "action_params": {
+        "approved_amount": 100000,
+        "disbursed_amount": 96045,
+        "total_deductions": 3955,
+        "processing_fee": 2000,
+        "processing_fee_gst": 360,
+        "broken_period_interest": 395,
+        "insurance_premium": 1200,
+        "account_last4": "4412"
+      }
     }
   }
 }

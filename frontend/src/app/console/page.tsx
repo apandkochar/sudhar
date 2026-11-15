@@ -45,7 +45,7 @@ export default function StandaloneConsolePage() {
     loadData(id);
   };
 
-  const handleTriggerPersona = async (personaId: "rohit" | "asha" | "sunita") => {
+  const handleTriggerPersona = async (personaId: "rohit" | "asha" | "sunita" | "meena") => {
     setIsLoading(true);
     try {
       let payload: any = {};
@@ -75,6 +75,20 @@ export default function StandaloneConsolePage() {
             debit_date: "2026-11-05",
             excess_debit_amount: 4500,
             bank_account_masked: "ICICI Bank ending 7810"
+          }
+        };
+      } else if (personaId === "meena") {
+        payload = {
+          event_id: `EVT-MEENA-${Date.now().toString().slice(-4)}`,
+          event_type: "DISBURSAL_CREDITED",
+          customer_id: "CUST-MEENA-501",
+          timestamp: new Date().toISOString(),
+          payload: {
+            code: "LMS_DISBURSAL_BREAKUP",
+            loan_id: "LN-MEENA-100K",
+            approved_amount: 100000,
+            disbursed_amount: 96045,
+            bank_account_masked: "Bank of Maharashtra ending 4412"
           }
         };
       } else {

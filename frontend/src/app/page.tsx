@@ -72,6 +72,25 @@ const PERSONAS_CONFIG: Record<string, any> = {
         resume_window_hours: 72
       }
     }
+  },
+  meena: {
+    name: "Meena Jadhav",
+    city: "Pune",
+    preferred_language: "mr",
+    loan_amount: 100000,
+    event: {
+      event_id: "EVT-MEENA-DEMO-01",
+      event_type: "DISBURSAL_CREDITED",
+      customer_id: "CUST-MEENA-501",
+      timestamp: "2026-11-15T09:00:00Z",
+      payload: {
+        code: "LMS_DISBURSAL_BREAKUP",
+        loan_id: "LN-MEENA-100K",
+        approved_amount: 100000,
+        disbursed_amount: 96045,
+        bank_account_masked: "Bank of Maharashtra ending 4412"
+      }
+    }
   }
 };
 
@@ -96,6 +115,72 @@ export default function Home() {
     const langNames: Record<string, string> = { mr: "Marathi", hi: "Hindi", en: "English" };
     const langName = langNames[lang] || "Marathi";
     const nowIso = new Date().toISOString();
+
+    if (personaId === "meena") {
+      return [
+        {
+          entry_id: "AUD-DET-01",
+          case_id: "CASE-EVT-MEENA-DEMO-01",
+          stage: "EVENT",
+          layer: "DETERMINISTIC_CODE",
+          is_ai: false,
+          timestamp: nowIso,
+          details: {
+            summary: "Disbursal credited · ₹96,045 of ₹1,00,000 · deductions query",
+            event_type: "DISBURSAL_CREDITED",
+            code: "LMS_DISBURSAL_BREAKUP"
+          }
+        },
+        {
+          entry_id: "AUD-DET-02",
+          case_id: "CASE-EVT-MEENA-DEMO-01",
+          stage: "PLAYBOOK",
+          layer: "DETERMINISTIC_CODE",
+          is_ai: false,
+          timestamp: nowIso,
+          details: {
+            summary: "Loan Disbursal Deduction Breakup & Transparency",
+            playbook_name: "Loan Disbursal Deduction Breakup & Transparency"
+          }
+        },
+        {
+          entry_id: "AUD-DET-03",
+          case_id: "CASE-EVT-MEENA-DEMO-01",
+          stage: "FACTS",
+          layer: "DETERMINISTIC_CODE",
+          is_ai: false,
+          timestamp: nowIso,
+          details: {
+            summary: `Approved ₹1,00,000 · Disbursed ₹96,045 · Fee ₹2,000 · GST ₹360 · Broken Int ₹395 · Ins ₹1,200 · language ${langName}`,
+            language: langName
+          }
+        },
+        {
+          entry_id: "AUD-DET-04",
+          case_id: "CASE-EVT-MEENA-DEMO-01",
+          stage: "CODE_LOOKUP",
+          layer: "DETERMINISTIC_CODE",
+          is_ai: false,
+          timestamp: nowIso,
+          details: {
+            summary: "LMS_DISBURSAL_BREAKUP → Approved ₹1,00,000 disbursed as ₹96,045",
+            code: "LMS_DISBURSAL_BREAKUP"
+          }
+        },
+        {
+          entry_id: "AUD-DET-05",
+          case_id: "CASE-EVT-MEENA-DEMO-01",
+          stage: "RULES",
+          layer: "DETERMINISTIC_CODE",
+          is_ai: false,
+          timestamp: nowIso,
+          details: {
+            summary: "Allowed actions: send_breakup_and_documents, raise_insurance_cancellation_request, book_callback",
+            allowed_actions: ["send_breakup_and_documents", "raise_insurance_cancellation_request", "book_callback"]
+          }
+        }
+      ];
+    }
 
     if (personaId === "asha") {
       return [
@@ -313,9 +398,9 @@ export default function Home() {
       moment: config.event.event_type,
       language: config.preferred_language,
       facts: { name: config.name, loan_details: { loan_amount: config.loan_amount }, ...config.event.payload },
-      playbook_id: personaId === "asha" ? "PB-POST-CLOSURE-01" : personaId === "sunita" ? "PB-VKYC-01" : "PB-MANDATE-01",
-      proposed_action: personaId === "asha" ? "create_ticket" : personaId === "sunita" ? "send_vkyc_resume_link" : "retry_mandate",
-      action_label: personaId === "asha" ? "रिफंड (₹4,500) और NOC का अनुरोध करें" : personaId === "sunita" ? "केवाईसी रिज्यूम लिंक भेजें" : "ई-मँडेट पुन्हा सेट करा",
+      playbook_id: personaId === "meena" ? "PB-DISBURSAL-BREAKUP-01" : personaId === "asha" ? "PB-POST-CLOSURE-01" : personaId === "sunita" ? "PB-VKYC-01" : "PB-MANDATE-01",
+      proposed_action: personaId === "meena" ? "send_breakup_and_documents" : personaId === "asha" ? "create_ticket" : personaId === "sunita" ? "send_vkyc_resume_link" : "retry_mandate",
+      action_label: personaId === "meena" ? "तपशील व कागदपत्रे पाठवा" : personaId === "asha" ? "रिफंड (₹4,500) और NOC का अनुरोध करें" : personaId === "sunita" ? "केवाईसी रिज्यूम लिंक भेजें" : "ई-मँडेट पुन्हा सेट करा",
       action_params: {},
       allowed_actions: [],
       cause_explanation: "",
@@ -361,18 +446,19 @@ export default function Home() {
   };
 
   // Requirement 2: Consent must be sent ONLY from Confirm button's onClick. Guard against repeated calls.
-  const handleConfirmConsent = async () => {
-    if (consentLockRef.current || !caseData || !caseData.proposed_action) return;
+  const handleConfirmConsent = async (chosenAction?: string) => {
+    const actionToRun = chosenAction || caseData?.proposed_action;
+    if (consentLockRef.current || !caseData || !actionToRun) return;
     consentLockRef.current = true;
     setIsProcessing(true);
 
     try {
       const res = await sendConsent({
         case_id: caseData.case_id,
-        action: caseData.proposed_action,
+        action: actionToRun,
         consent_given: true,
         selected_params: caseData.action_params || {},
-        idempotency_key: `IDEMP-${caseData.case_id}-${caseData.proposed_action}`,
+        idempotency_key: `IDEMP-${caseData.case_id}-${actionToRun}`,
       });
 
       const updatedCase = await getCaseDetails(caseData.case_id);
@@ -453,6 +539,12 @@ export default function Home() {
   // Requirement 4: Show "Failed – action needed" before consent and "Registered" after; never internal states like PROPOSED
   const getCustomerFriendlyStatus = () => {
     if (cardStep === "RECEIPT" || caseData?.status === "EXECUTED") {
+      if (activePersonaId === "meena") {
+        return {
+          label: "Breakup & Docs Sent",
+          colorClass: "bg-emerald-50 text-emerald-700 border-emerald-200"
+        };
+      }
       if (activePersonaId === "asha") {
         return {
           label: "3 requests raised",
@@ -499,13 +591,15 @@ export default function Home() {
                   ? "Loan Servicing"
                   : activePersonaId === "sunita"
                   ? "Video KYC"
+                  : activePersonaId === "meena"
+                  ? "Loan Disbursal"
                   : "e-Mandate Setup"
               }
             />
 
             {/* Journey Stepper */}
             <Stepper
-              currentStep={activePersonaId === "sunita" ? 2 : 3}
+              currentStep={activePersonaId === "sunita" ? 2 : activePersonaId === "meena" ? 4 : 3}
               isFailed={cardStep !== "RECEIPT"}
             />
 
@@ -577,22 +671,37 @@ export default function Home() {
                     <ConsentCard
                       actionName={caseData.proposed_action || "retry_mandate"}
                       targetAccount={caseData.action_params?.bank_name}
+                      secondaryOption={
+                        activePersonaId === "meena"
+                          ? {
+                              action: "raise_insurance_cancellation_request",
+                              label: "Raise insurance cancellation request",
+                              description: "Optional cover (₹1,200) · lender decides within 48-72h"
+                            }
+                          : undefined
+                      }
                       whatItDoes={
-                        activePersonaId === "asha"
+                        activePersonaId === "meena"
+                          ? "Send full itemized deduction statement and official loan sanction documents to your registered email and app inbox."
+                          : activePersonaId === "asha"
                           ? "1. Raise ₹4,500 refund ticket for excess debit to ICICI Bank ending 7810 (SLA 3-5 days)\n2. Expedite official No-Dues Certificate (NOC) dispatch\n3. Schedule credit bureau record check to protect CIBIL score"
                           : activePersonaId === "sunita"
                           ? "Send a secure 72-hour direct video KYC resume link to your verified mobile ending 3210."
                           : "Set up auto-debit on your State Bank of India account ending 4521 for monthly EMI."
                       }
                       whatItDoesNotDo={
-                        activePersonaId === "asha"
+                        activePersonaId === "meena"
+                          ? "Will not charge any additional fee or alter your approved EMI schedule."
+                          : activePersonaId === "asha"
                           ? "Will not reopen your closed loan. Does not require visiting a branch or re-uploading documents."
                           : activePersonaId === "sunita"
                           ? "Does not require re-uploading documents already verified."
                           : "Will not deduct money right now. No setup fee is charged."
                       }
                       howToUndo={
-                        activePersonaId === "asha"
+                        activePersonaId === "meena"
+                          ? "You can view or download loan documents anytime in your loan dashboard or 24x7 Help."
+                          : activePersonaId === "asha"
                           ? "You can track refund status and NOC dispatch anytime in the 24x7 Help section."
                           : activePersonaId === "sunita"
                           ? "You can also resume directly from your loan dashboard."

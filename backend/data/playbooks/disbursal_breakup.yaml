@@ -1,0 +1,52 @@
+id: "PB-DISBURSAL-BREAKUP-01"
+name: "Loan Disbursal Deduction Breakup & Transparency"
+moment: "DISBURSAL_CREDITED"
+code: "LMS_DISBURSAL_BREAKUP"
+persona: "meena"
+description: "Explains itemized deductions between approved loan and net disbursed amount, notes optional insurance, and delivers full documents or insurance cancellation request."
+
+trigger:
+  event_type: "DISBURSAL_CREDITED"
+  match_code: "LMS_DISBURSAL_BREAKUP"
+
+deterministic_rules:
+  assert_deductions_match_difference: true
+  allowed_actions:
+    - "send_breakup_and_documents"
+    - "raise_insurance_cancellation_request"
+    - "book_callback"
+
+context_facts_mapping:
+  loan_id: "facts.loan_id"
+  approved_amount: "facts.approved_amount"
+  disbursed_amount: "facts.disbursed_amount"
+  processing_fee: "facts.processing_fee"
+  processing_fee_gst: "facts.processing_fee_gst"
+  broken_period_interest: "facts.broken_period_interest"
+  insurance_premium: "facts.insurance_premium"
+  total_deductions: "facts.total_deductions"
+  bank_name: "facts.bank_name"
+  account_last4: "facts.account_last4"
+
+consent_spec:
+  action: "send_breakup_and_documents"
+  what_it_does:
+    en: "Send the complete itemized deduction statement and official loan sanction documents to your registered email and app inbox."
+    hi: "पूरी कटौती का विवरण और आधिकारिक लोन दस्तावेज आपके पंजीकृत ईमेल और ऐप इनबॉक्स में भेजेगा।"
+    mr: "सर्व कपातींचा संपूर्ण तपशील आणि अधिकृत कर्ज कागदपत्रे तुमच्या नोंदणीकृत ईमेल व ॲप इनबॉक्सवर पाठवेल."
+  what_it_does_not_do:
+    en: "Will not deduct any additional charges or modify your approved EMI schedule."
+    hi: "कोई अतिरिक्त शुल्क नहीं काटेगा और आपकी स्वीकृत EMI समयसारिणी में बदलाव नहीं करेगा।"
+    mr: "कोणतेही अतिरिक्त शुल्क कापणार नाही आणि तुमच्या मंजूर EMI वेळापत्रकात बदल करणार नाही."
+  how_to_undo:
+    en: "You can review and track all documents from 24x7 Help or your loan dashboard."
+    hi: "आप 24x7 सहायता या लोन डैशबोर्ड से सभी दस्तावेज कभी भी देख सकते हैं।"
+    mr: "तुम्ही ॲपमधील 24x7 मदत किंवा कर्ज डॅशबोर्डवरून कधीही कागदपत्रे पाहू शकता."
+
+receipt_spec:
+  status: "SUCCESS"
+  reference_prefix: "DOC-BRK-"
+  timeline:
+    en: "Documents and deduction breakup PDF sent immediately to your registered email."
+    hi: "दस्तावेज और कटौती विवरण PDF आपके पंजीकृत ईमेल पर तुरंत भेज दिया गया है।"
+    mr: "कागदपत्रे आणि कपात तपशील PDF तुमच्या नोंदणीकृत ईमेलवर तात्काळ पाठवले आहे."

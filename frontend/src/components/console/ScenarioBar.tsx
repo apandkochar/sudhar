@@ -78,6 +78,19 @@ export const ScenarioBar: React.FC<ScenarioBarProps> = ({
           <span className="w-2 h-2 rounded-full bg-purple-400" />
           <span>Sunita · Video KYC dropped</span>
         </button>
+
+        {/* Meena */}
+        <button
+          onClick={() => onSelectPersona("meena")}
+          className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
+            activePersonaId === "meena"
+              ? "bg-[#00BAF2] text-white shadow-md ring-2 ring-[#00BAF2]/30 font-bold"
+              : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-cyan-400" />
+          <span>Meena · Disbursal breakup</span>
+        </button>
       </div>
 
       {/* Before/After Toggle & Stats */}
@@ -106,9 +119,9 @@ export const ScenarioBar: React.FC<ScenarioBarProps> = ({
           </button>
         </div>
 
-        {/* Rescues Counter Badge */}
+        {/* Session Counter: Tickets avoided: N */}
         <div className="px-2 py-1 bg-slate-800 rounded-xl border border-slate-700 text-[11px] font-mono text-slate-300 flex items-center gap-1">
-          <span className="text-slate-400">Rescues:</span>
+          <span className="text-slate-400">Tickets avoided:</span>
           <span className="font-bold text-emerald-400">{rescuesCount}</span>
         </div>
 

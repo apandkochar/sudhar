@@ -66,6 +66,21 @@
         "book_callback"
       ],
       "template_key": "rejection_obligations"
+    },
+    "LMS_DISBURSAL_BREAKUP": {
+      "code": "LMS_DISBURSAL_BREAKUP",
+      "source": "MOCK",
+      "category": "LMS",
+      "name": "Loan Disbursal Deduction Breakup & Transparency",
+      "description": "Disbursal credited with upfront deductions for processing fee, GST, broken-period interest, and optional insurance.",
+      "customer_friendly_cause": "Your approved loan of ₹1,00,000 was disbursed as ₹96,045 after scheduled deductions as per your loan terms.",
+      "recommended_fix": "Send full itemized deduction breakup and loan agreement documents to registered email.",
+      "allowed_actions": [
+        "send_breakup_and_documents",
+        "raise_insurance_cancellation_request",
+        "book_callback"
+      ],
+      "template_key": "disbursal_breakup"
     }
   }
 }

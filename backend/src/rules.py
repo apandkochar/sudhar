@@ -96,6 +96,93 @@ def evaluate_vkyc_rules(
     
     return "send_vkyc_resume_link", action_params, allowed_actions
 
+def compute_disbursal_deductions(
+    approved_amount: float,
+    fee_pct: float,
+    gst_pct: float,
+    annual_interest_rate_pct: float,
+    broken_period_days: int,
+    insurance_premium: float
+) -> Dict[str, float]:
+    """
+    Deterministically computes each deduction for loan disbursal:
+    1. Processing fee = principal * rate / 100
+    2. GST = fee * gst_rate / 100
+    3. Broken-period interest = principal * annual_rate * days / 365 (rounded to nearest rupee)
+    4. Insurance premium = optional cover as stated in loan terms
+    """
+    fee = round(approved_amount * fee_pct / 100.0)
+    gst = round(fee * gst_pct / 100.0)
+    broken_interest = round(approved_amount * (annual_interest_rate_pct / 100.0) * broken_period_days / 365.0)
+    total_deductions = fee + gst + broken_interest + insurance_premium
+    net_disbursed = approved_amount - total_deductions
+    return {
+        "processing_fee": fee,
+        "processing_fee_gst": gst,
+        "broken_period_interest": broken_interest,
+        "insurance_premium": insurance_premium,
+        "total_deductions": total_deductions,
+        "net_disbursed": net_disbursed
+    }
+
+def evaluate_disbursal_breakup_rules(
+    code: str,
+    facts: Dict[str, Any],
+    playbook_rules: Dict[str, Any]
+) -> Tuple[str, Dict[str, Any], List[str]]:
+    """
+    Deterministic rule evaluation for loan disbursal deduction breakup.
+    Asserts that deductions add up exactly to (approved - disbursed).
+    If they don't add up -> hand over to a human, no message.
+    """
+    approved = float(facts.get("approved_amount") or facts.get("facts", {}).get("approved_amount") or facts.get("loan_details", {}).get("loan_amount", 100000))
+    fee_pct = float(facts.get("processing_fee_pct") or facts.get("facts", {}).get("processing_fee_pct", 2.0))
+    gst_pct = float(facts.get("gst_pct") or facts.get("facts", {}).get("gst_pct", 18.0))
+    annual_rate_pct = float(facts.get("annual_interest_rate_pct") or facts.get("facts", {}).get("annual_interest_rate_pct", 24.0))
+    broken_days = int(facts.get("broken_period_days") or facts.get("facts", {}).get("broken_period_days", 6))
+    insurance = float(facts.get("insurance_premium") or facts.get("facts", {}).get("insurance_premium", 1200))
+
+    computed = compute_disbursal_deductions(
+        approved_amount=approved,
+        fee_pct=fee_pct,
+        gst_pct=gst_pct,
+        annual_interest_rate_pct=annual_rate_pct,
+        broken_period_days=broken_days,
+        insurance_premium=insurance
+    )
+
+    actual_disbursed = float(facts.get("disbursed_amount") or facts.get("facts", {}).get("disbursed_amount", computed["net_disbursed"]))
+    difference = approved - actual_disbursed
+
+    # Assert deductions add up exactly to approved minus disbursed
+    if computed["total_deductions"] != difference or computed["net_disbursed"] != actual_disbursed:
+        # Mismatch -> Hand over to a human, no message
+        return "handover_to_human", {
+            "reason": "deductions_mismatch",
+            "computed_deductions": computed["total_deductions"],
+            "difference": difference,
+            "handover": True
+        }, ["handover_to_human", "book_callback"]
+
+    allowed_actions = [
+        "send_breakup_and_documents",
+        "raise_insurance_cancellation_request",
+        "book_callback"
+    ]
+
+    action_params = {
+        "approved_amount": int(approved),
+        "disbursed_amount": int(actual_disbursed),
+        "processing_fee": int(computed["processing_fee"]),
+        "processing_fee_gst": int(computed["processing_fee_gst"]),
+        "broken_period_interest": int(computed["broken_period_interest"]),
+        "insurance_premium": int(computed["insurance_premium"]),
+        "total_deductions": int(computed["total_deductions"]),
+        "account_last4": str(facts.get("account_last4") or facts.get("facts", {}).get("account_last4", "4412"))
+    }
+
+    return "send_breakup_and_documents", action_params, allowed_actions
+
 def evaluate_rules(
     moment: str,
     code: str,
@@ -110,6 +197,8 @@ def evaluate_rules(
         return evaluate_post_closure_rules(code, facts, rules_spec)
     elif moment == "VKYC_DROPPED":
         return evaluate_vkyc_rules(code, facts, rules_spec)
+    elif moment == "DISBURSAL_CREDITED":
+        return evaluate_disbursal_breakup_rules(code, facts, rules_spec)
     else:
         raise RuleEvaluationError(f"Unknown moment: {moment}")
 

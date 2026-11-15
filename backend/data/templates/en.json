@@ -67,6 +67,34 @@
       "proposed_action": "set_reminder",
       "action_label": "Set 90-day reminder",
       "action_params": { "days": 90 }
+    },
+    "disbursal_breakup": {
+      "title": "Loan Disbursal Deduction Breakup",
+      "explanation": "Your approved loan of ₹100000 was disbursed as ₹96045, with total deductions of ₹3955. This includes processing fee ₹2000, GST ₹360, 6 days broken-period interest ₹395, and loan insurance premium ₹1200 (insurance is optional as per your loan terms). These deductions add up exactly to the difference. Shall we send the full breakup and loan documents to your inbox?",
+      "visual_type": "DEDUCTION_BREAKUP",
+      "visual_data": {
+        "approved_amount": "₹1,00,000",
+        "disbursed_amount": "₹96,045",
+        "deductions": [
+          { "label": "Processing Fee (2%)", "amount": "₹2,000" },
+          { "label": "GST on Fee (18%)", "amount": "₹360" },
+          { "label": "Broken-period interest (6 days)", "amount": "₹395" },
+          { "label": "Loan insurance premium (Optional)", "amount": "₹1,200" }
+        ],
+        "total_deductions": "₹3,955"
+      },
+      "proposed_action": "send_breakup_and_documents",
+      "action_label": "Send Breakup & Documents",
+      "action_params": {
+        "approved_amount": 100000,
+        "disbursed_amount": 96045,
+        "total_deductions": 3955,
+        "processing_fee": 2000,
+        "processing_fee_gst": 360,
+        "broken_period_interest": 395,
+        "insurance_premium": 1200,
+        "account_last4": "4412"
+      }
     }
   }
 }
