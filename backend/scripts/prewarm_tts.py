@@ -56,7 +56,7 @@ def main():
         char_count = len(text)
 
         was_cached = is_cached(text, lang)
-        audio = synthesize(text, lang)
+        audio = synthesize(text, lang, timeout_sec=10.0)
         is_now_cached = is_cached(text, lang)
 
         if not was_cached and audio:

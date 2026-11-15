@@ -346,6 +346,10 @@ export default function Home() {
         const updated = await sendEvent({
           ...config.event,
           event_id: `${config.event.event_id}-${newLang}`,
+          payload: {
+            ...config.event.payload,
+            language: newLang,
+          }
         });
         setCaseData(updated);
       } catch (e) {

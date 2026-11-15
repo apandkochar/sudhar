@@ -86,3 +86,23 @@ def test_tts_missing_key_returns_204(monkeypatch):
 
     res = client.post("/api/tts", json={"text": text, "lang": lang})
     assert res.status_code == 204
+
+def test_card_creation_triggers_background_synthesis():
+    with patch("src.app.synthesize") as mock_synth:
+        res = client.post("/api/events", json={
+            "event_id": "EVT-TEST-BG-SYNTH-01",
+            "event_type": "MANDATE_FAILED",
+            "customer_id": "CUST-ROHIT-401",
+            "timestamp": "2026-11-14T10:15:30Z",
+            "payload": {
+                "code": "AP15",
+                "attempt": 1,
+                "bank_account_masked": "HDFC Bank ending 9012"
+            }
+        })
+        assert res.status_code == 200
+        mock_synth.assert_called_once()
+        args = mock_synth.call_args[0]
+        assert len(args) == 2  # (explanation, lang)
+        assert args[1] == "mr"
+

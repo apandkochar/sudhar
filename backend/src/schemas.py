@@ -10,6 +10,7 @@ class EventPayload(BaseModel):
     debit_amount: Optional[float] = None
     debit_date: Optional[str] = None
     disconnect_reason: Optional[str] = None
+    language: Optional[str] = None
     extra: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 class EventRequest(BaseModel):

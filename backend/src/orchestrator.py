@@ -92,7 +92,9 @@ def process_event(event_req: EventRequest, db_path: Optional[Path] = None) -> Di
     # 3. FACTS loading & PII masking
     persona_id = playbook.get("persona", "rohit")
     persona_data = load_persona(persona_id)
-    language = persona_data.get("preferred_language", "mr")
+    # Support language override from event payload (e.g. language switcher in UI)
+    requested_language = getattr(event_req.payload, "language", None)
+    language = requested_language if requested_language in ["mr", "hi", "en"] else persona_data.get("preferred_language", "mr")
     facts = mask_pii(persona_data)
     
     lang_label_map = {"mr": "Marathi", "hi": "Hindi", "en": "English"}

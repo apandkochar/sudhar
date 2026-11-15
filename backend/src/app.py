@@ -2,7 +2,7 @@ import json
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from fastapi import FastAPI, HTTPException, Response, status
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -66,13 +66,18 @@ def list_personas() -> List[Dict[str, Any]]:
     return personas
 
 @app.post("/api/events", response_model=CaseResponse)
-def handle_event(event_req: EventRequest) -> Dict[str, Any]:
+def handle_event(event_req: EventRequest, background_tasks: BackgroundTasks) -> Dict[str, Any]:
     """
     Ingests failure events (MANDATE_FAILED, EMI_DEBITED_AFTER_CLOSURE, VKYC_DROPPED).
     Executes playbook -> rules -> template resolution -> consent proposal.
+    Triggers TTS synthesis in background so audio is cached before customer taps Listen.
     """
     try:
         case_data = process_event(event_req)
+        explanation = case_data.get("cause_explanation")
+        lang = case_data.get("language")
+        if explanation and lang:
+            background_tasks.add_task(synthesize, explanation, lang)
         return case_data
     except Exception as e:
         raise HTTPException(

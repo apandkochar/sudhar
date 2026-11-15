@@ -11,9 +11,14 @@ from src.config import AUDIO_CACHE_DIR, DEMO_MODE, SARVAM_API_KEY
 logger = logging.getLogger(__name__)
 
 SARVAM_TTS_URL = "https://api.sarvam.ai/text-to-speech"
-SARVAM_MODEL = "bulbul:v3"
-# "priya" is a verified female speaker supporting Marathi (mr-IN), Hindi (hi-IN), and English (en-IN)
-SARVAM_SPEAKER = "priya"
+SARVAM_MODEL = "bulbul:v4-flash"
+
+# Conversational persona-based female speakers in bulbul:v4-flash
+CONVERSATIONAL_SPEAKERS = {
+    "mr-IN": "ishita_mr_conversational",
+    "hi-IN": "kavya_hi_conversational",
+    "en-IN": "ishita_en_customer",
+}
 
 # Mapping input lang code to Sarvam BCP-47 target_language_code
 LANG_MAP = {
@@ -38,13 +43,14 @@ def is_cached(text: str, lang: str) -> bool:
     path = get_cache_path(text, lang)
     return path.exists() and path.stat().st_size > 0
 
-def synthesize(text: str, lang: str) -> Optional[bytes]:
+def synthesize(text: str, lang: str, timeout_sec: float = 3.0) -> Optional[bytes]:
     """
-    Synthesizes speech for the given text and language using Sarvam TTS (Bulbul v3).
+    Synthesizes speech for the given text and language using Sarvam TTS (Bulbul v4-flash).
     - Checks disk cache: data/audio_cache/<sha256(lang+text)>.wav. Cache hit = no network call.
     - If DEMO_MODE=offline: serves cached audio only, never calls the network.
     - If SARVAM_API_KEY is not set or network call fails/times out: returns None (204).
     - Never logs the API key.
+    - Default timeout: 3.0s for live API calls.
     """
     if not text or not text.strip():
         return None
@@ -68,13 +74,14 @@ def synthesize(text: str, lang: str) -> Optional[bytes]:
         return None
 
     target_lang_code = LANG_MAP.get(lang.lower(), "en-IN")
+    speaker = CONVERSATIONAL_SPEAKERS.get(target_lang_code, "kavya_hi_conversational")
 
     payload = {
         "text": text,
         "target_language_code": target_lang_code,
-        "speaker": SARVAM_SPEAKER,
+        "speaker": speaker,
         "model": SARVAM_MODEL,
-        "pace": 1.0,
+        "pace": 0.95,
         "output_audio_codec": "wav"
     }
 
@@ -84,7 +91,7 @@ def synthesize(text: str, lang: str) -> Optional[bytes]:
     }
 
     try:
-        with httpx.Client(timeout=8.0) as client:
+        with httpx.Client(timeout=timeout_sec) as client:
             resp = client.post(SARVAM_TTS_URL, headers=headers, json=payload)
             if resp.status_code != 200:
                 logger.warning("Sarvam TTS returned status code: %d", resp.status_code)
