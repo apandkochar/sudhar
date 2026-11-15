@@ -20,22 +20,21 @@
     "cached_at": "2026-11-14T12:00:00Z"
   },
   "asha:hi": {
-    "explanation": "आशा जी, आपका लोन 04-11-2026 को बंद हो गया था, लेकिन बैंक का ऑटोमैटिक डेबिट साइकिल पहले ही शुरू हो चुका था, जिससे आपके ICICI Bank खाते (...7810) से 4500 रुपये कट गए। क्या हम इस मामले की जाँच के लिए टिकट बना सकते हैं?",
+    "explanation": "आपका लोन 04-11-2026 को बंद हो गया था। 05-11-2026 को आपके ICICI Bank खाते (...7810) से ₹4,500 कट गए। क्या हम तीनों अनुरोध दर्ज करें: ₹4,500 का रिफंड, NOC डिस्पैच और क्रेडिट-रिपोर्ट सुधार?",
     "proposed_action": "create_ticket",
-    "action_label": "टिकट बनाएँ",
+    "action_label": "तीनों अनुरोध दर्ज करें",
     "confidence": 0.95
   },
   "asha:en": {
-    "explanation": "Asha, your loan was closed on 04 Nov 2026, but an EMI of ₹4500 was debited on 05 Nov due to the clearing cycle. Shall we initiate a full refund of ₹4500 to ICICI account ending 7810 and request your No-Dues Certificate (NOC)?",
+    "explanation": "Your loan was closed on 2026-11-04, but an amount of 4500 was debited from your ICICI Bank account ending in 7810 on 2026-11-05. Shall we raise a ticket for the full refund of 4500, NOC dispatch, and credit-report correction?",
     "proposed_action": "create_ticket",
-    "action_label": "Initiate Refund & NOC",
-    "confidence": 0.95,
-    "cached_at": "2026-11-14T12:00:00Z"
+    "action_label": "Raise Ticket",
+    "confidence": 0.95
   },
   "asha:mr": {
-    "explanation": "तुमचे कर्ज ४ नोव्हेंबर २०२६ रोजी बंद झाले होते, परंतु ५ नोव्हेंबर २०२६ रोजी तुमच्या ICICI Bank (खाते शेवटचे अंक 7810) मधून 4500 रुपयांचे ईएमआय डिबिट झाले कारण ऑटोमेटेड प्रक्रिया आधीच सुरू झाली होती. या अतिरिक्त रकमेच्या परताव्यासाठी आम्ही तक्रार नोंदवू का?",
+    "explanation": "तुमचे कर्ज 04-11-2026 रोजी बंद झाले होते. 05-11-2026 रोजी तुमच्या ICICI Bank खात्यातून (...7810) ₹4,500 कापले गेले. आम्ही तिन्ही विनंत्या नोंदवू का: ₹4,500 चा परतावा, अधिकृत NOC आणि क्रेडिट-रिपोर्ट पडताळणी?",
     "proposed_action": "create_ticket",
-    "action_label": "तक्रार नोंदवा",
+    "action_label": "तिन्ही विनंत्या नोंदवा",
     "confidence": 0.95
   },
   "sunita:hi": {

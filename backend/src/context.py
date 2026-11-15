@@ -41,12 +41,16 @@ def build_context_packet(
     """
     sanitized_facts = mask_pii(facts)
     
+    cause_val = code_entry.get("customer_friendly_cause", code_entry.get("description"))
+    if moment == "EMI_DEBITED_AFTER_CLOSURE":
+        cause_val = "Debit occurred after confirmed loan closure date (unverified cause)."
+
     return {
         "task": task,
         "language": language,
         "moment": moment,
         "facts": sanitized_facts,
-        "cause": code_entry.get("customer_friendly_cause", code_entry.get("description")),
+        "cause": cause_val,
         "recommended_fix": code_entry.get("recommended_fix"),
         "allowed_actions": allowed_actions,
         "must_not": [

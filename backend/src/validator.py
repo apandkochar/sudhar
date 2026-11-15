@@ -23,6 +23,15 @@ BANNED_PHRASES = [
     "खात्रीशीर"
 ]
 
+POST_CLOSURE_CAUSE_PHRASES = [
+    "कारण",
+    "क्योंकि",
+    "because",
+    "due to",
+    "automated",
+    "ऑटोमेटेड"
+]
+
 DEVANAGARI_DIGITS_MAP = str.maketrans("०१२३४५६७८९", "0123456789")
 
 MONTH_ALIASES = {
@@ -172,7 +181,8 @@ def validate_llm_output(
     facts: Dict[str, Any],
     allowed_actions: List[str],
     expected_language: str,
-    action_params: Optional[Dict[str, Any]] = None
+    action_params: Optional[Dict[str, Any]] = None,
+    playbook_id: Optional[str] = None
 ) -> ValidationResult:
     """
     Strict deterministic validator enforcing Rule 2:
@@ -180,8 +190,9 @@ def validate_llm_output(
     2. Every date ("4 नवंबर", "4 Nov", "04-11-2026", "४ नवंबर") must match fact dates.
     3. Proposed action must strictly be in allowed_actions.
     4. Zero banned phrases (no 'guaranteed', 'pre-approved', etc.).
-    5. Required target account last4 mentioned verbatim if specified in action_params.
-    6. Text matches requested language script (Devanagari for mr/hi).
+    5. Post-closure debit check: rejects messages stating unverified cause (post_closure_debit only).
+    6. Required target account last4 mentioned verbatim if specified in action_params.
+    7. Text matches requested language script (Devanagari for mr/hi).
     """
     errors = []
     raw_explanation = llm_output.get("explanation", "")
@@ -198,6 +209,31 @@ def validate_llm_output(
     for phrase in BANNED_PHRASES:
         if phrase in raw_lower:
             errors.append(f"Banned phrase detected: '{phrase}'")
+
+    # 2b. Cause check for post_closure_debit playbook ONLY
+    is_post_closure = False
+    if playbook_id is not None:
+        is_post_closure = playbook_id in [
+            "post_closure_debit",
+            "post_closure",
+            "PB-POST-CLOSURE-01",
+            "EMI_DEBITED_AFTER_CLOSURE",
+        ]
+    else:
+        is_post_closure = (
+            (action_params and action_params.get("ticket_type") == "REFUND_AND_NOC")
+            or (isinstance(facts, dict) and (
+                facts.get("persona_id") == "asha"
+                or "closure_date" in facts
+                or ("facts" in facts and isinstance(facts["facts"], dict) and "closure_date" in facts["facts"])
+                or ("loan_details" in facts and isinstance(facts["loan_details"], dict) and "closure_date" in facts["loan_details"])
+            ))
+        )
+
+    if is_post_closure:
+        for phrase in POST_CLOSURE_CAUSE_PHRASES:
+            if phrase.lower() in raw_lower:
+                errors.append(f"Post-closure debit message states unverified cause ('{phrase}'); must state no cause.")
 
     # 3. Required entities check: if mandate retry with secondary account, verify account last4 is mentioned
     target_account_last4 = None

@@ -53,10 +53,17 @@ def generate_with_gemini(
 
     url = f"{GEMINI_API_URL}/{model}:generateContent?key={key}"
     
+    post_closure_rules = ""
+    if context_packet.get("moment") == "EMI_DEBITED_AFTER_CLOSURE" or context_packet.get("playbook_id") in ["post_closure_debit", "post_closure", "PB-POST-CLOSURE-01"]:
+        post_closure_rules = """
+- POST-CLOSURE DEBIT SPECIFIC: State NO cause for the debit. STRICTLY DO NOT use words stating a cause: 'because', 'due to', 'automated', 'कारण', 'क्योंकि', 'ऑटोमेटेड'.
+- Must include both dates: closure date (04-11-2026 / 04 Nov) and debit date (05-11-2026 / 05 Nov), the amount (₹4,500 or 4500), and account ending 7810.
+- Must ask whether to raise all three requests: (1) full refund of ₹4500, (2) NOC dispatch, and (3) credit-report correction."""
+
     user_prompt = f"""Task: {context_packet.get('task')}
 Language: {context_packet.get('language')}
 Moment: {context_packet.get('moment')}
-Cause from Code Table: {context_packet.get('cause')}
+Cause from Code Table: {context_packet.get('cause') if context_packet.get('moment') != 'EMI_DEBITED_AFTER_CLOSURE' else 'Unverified post-closure debit (do not state cause)'}
 Allowed Actions: {json.dumps(context_packet.get('allowed_actions'))}
 Case Facts: {json.dumps(context_packet.get('facts'))}
 
@@ -64,7 +71,7 @@ CRITICAL RULES:
 - Use Western digits (0-9) only.
 - Include account ending numbers (e.g. 7810, 4521, 9012) verbatim in the explanation text.
 - Dates must strictly match facts.
-- End with a polite question asking for customer consent.
+- End with a polite question asking for customer consent.{post_closure_rules}
 {context_packet.get('validation_error', '')}
 
 Produce the structured JSON response in {context_packet.get('language')}."""
@@ -114,7 +121,8 @@ def draft_explanation_with_validator(
     language: str,
     action_params: Optional[Dict[str, Any]] = None,
     api_key: Optional[str] = None,
-    model_name: Optional[str] = None
+    model_name: Optional[str] = None,
+    playbook_id: Optional[str] = None
 ) -> Tuple[Optional[Dict[str, Any]], List[Dict[str, Any]], str, Dict[str, Any]]:
     """
     Executes the LLM gateway with strict latency budget, cache fallback, and Rule 2 validation:
@@ -129,6 +137,10 @@ def draft_explanation_with_validator(
     lang_map = {"mr": "Marathi", "hi": "Hindi", "en": "English"}
     lang_name = lang_map.get(language, "Marathi")
     trace_attempts: List[Dict[str, Any]] = []
+
+    effective_playbook = playbook_id or context_packet.get("playbook_id")
+    if not effective_playbook and context_packet.get("moment") == "EMI_DEBITED_AFTER_CLOSURE":
+        effective_playbook = "post_closure_debit"
 
     persona_id = (context_packet.get("facts", {}).get("persona_id") or 
                   facts.get("persona_id") or 
@@ -165,7 +177,7 @@ def draft_explanation_with_validator(
     )
 
     if draft_1:
-        val_1 = validate_llm_output(draft_1, facts, allowed_actions, language, action_params)
+        val_1 = validate_llm_output(draft_1, facts, allowed_actions, language, action_params, playbook_id=effective_playbook)
         if val_1.passed:
             # Save validated response to cache
             save_cached_llm_response(persona_id, language, draft_1)
@@ -237,7 +249,10 @@ def draft_explanation_with_validator(
         # Attempt 2 (Retry within remaining budget <= 6.0s total)
         remaining_budget = max(1.0, 6.0 - elapsed_so_far)
         retry_packet = dict(context_packet)
-        feedback = f"Previous attempt failed safety validation. Fix: ensure all numbers are Western Arabic digits (0-9) and match facts exactly. Include account ending numbers verbatim."
+        if val_1 and any("unverified cause" in err for err in val_1.errors):
+            feedback = "Previous attempt failed safety validation: states unverified cause. Fix: state NO cause for the debit (NEVER use 'because', 'due to', 'automated', 'कारण', 'क्योंकि', 'ऑटोमेटेड'). Mention both dates, amount ₹4500, account 7810, and ask whether to raise all three requests: refund, NOC dispatch, and credit-report correction."
+        else:
+            feedback = f"Previous attempt failed safety validation. Fix: ensure all numbers are Western Arabic digits (0-9) and match facts exactly. Include account ending numbers verbatim."
         retry_packet["validation_error"] = feedback
 
         draft_2, latency_2, err_2 = generate_with_gemini(
@@ -246,7 +261,7 @@ def draft_explanation_with_validator(
         total_latency = round(latency_1 + latency_2, 2)
 
         if draft_2:
-            val_2 = validate_llm_output(draft_2, facts, allowed_actions, language, action_params)
+            val_2 = validate_llm_output(draft_2, facts, allowed_actions, language, action_params, playbook_id=effective_playbook)
             if val_2.passed:
                 # Save validated response to cache
                 save_cached_llm_response(persona_id, language, draft_2)

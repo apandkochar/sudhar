@@ -28,14 +28,14 @@
     },
     "post_closure_debit": {
       "title": "लोन बंद होने के बाद EMI कटी",
-      "explanation": "आपका पर्सनल लोन 4 नवंबर 2026 को पूरी तरह बंद हो चुका था, लेकिन बैंक के ऑटो-डेबिट चक्र के कारण 5 नवंबर को ₹4,500 की EMI कट गई। क्या हम तुरंत ₹4,500 के रिफंड और नो-ड्यूज सर्टिफिकेट (NOC) का अनुरोध करें?",
+      "explanation": "आपका लोन 04-11-2026 को बंद हो गया था। 05-11-2026 को आपके ICICI Bank खाते (...7810) से ₹4,500 कट गए। क्या हम तीनों अनुरोध दर्ज करें: ₹4,500 का रिफंड, NOC डिस्पैच और क्रेडिट-रिपोर्ट सुधार?",
       "visual_type": "TIMELINE_MISMATCH",
       "visual_data": {
         "closure_event": { "title": "लोन पूर्णतः बंद", "date": "04 नवंबर 2026", "status": "सत्यापित" },
         "erroneous_debit": { "title": "अतिरिक्त EMI कटौती", "date": "05 नवंबर 2026", "amount": "₹4,500", "status": "त्रुटि" }
       },
       "proposed_action": "create_ticket",
-      "action_label": "रिफंड (₹4,500) और NOC का अनुरोध करें",
+      "action_label": "तीनों अनुरोध दर्ज करें",
       "action_params": {
         "ticket_type": "REFUND_AND_NOC",
         "refund_amount": 4500,
